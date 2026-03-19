@@ -1,0 +1,231 @@
+# ============================================================
+# PROJECT: Mini Professor — AI-Powered Course Assistant
+# ============================================================
+# Developer: Master of Applied Computing student, Univ. of Windsor
+# IDE: Cursor
+# Goal: Production-level AI portfolio project for demo day
+# Timeline: 1-2 weeks MVP
+# ============================================================
+
+## WHAT WE ARE BUILDING
+
+A platform where professors upload course materials (PDFs, slides, notes)
+and students interact with an AI teaching assistant ("Mini Professor") that
+answers questions strictly grounded in those uploaded materials using RAG
+(Retrieval-Augmented Generation).
+
+---
+
+## PROJECT STRUCTURE
+
+```
+mini-professor/
+├── frontend/          # Next.js 14 App Router + TypeScript + Tailwind
+├── backend/           # FastAPI (Python) — all AI logic lives here
+├── .cursorrules       # This file
+└── README.md
+```
+
+---
+
+## TECH STACK — NEVER DEVIATE FROM THIS
+
+### Frontend
+- Framework: Next.js 14 with App Router (NOT pages router)
+- Language: TypeScript (strict mode)
+- Styling: Tailwind CSS + shadcn/ui components
+- State: Zustand for global state, React Query (TanStack) for server state
+- HTTP: axios for API calls
+- Streaming: EventSource / SSE for streaming LLM responses
+- NO Redux, NO class components, NO CSS modules
+
+### Backend (AI Engine)
+- Framework: FastAPI (Python 3.10+)
+- AI Orchestration: LangChain + LangGraph
+- Document Parsing: LlamaIndex (for PDF/PPTX/DOCX ingestion)
+- Embeddings: OpenAI text-embedding-3-small
+- LLM: GPT-4o for answers, GPT-4o-mini for classification
+- Vector DB: Qdrant (running locally via Docker)
+- Reranking: Cohere Rerank API
+- Observability: LangSmith
+- Package manager: pip with requirements.txt
+
+### Database
+- PostgreSQL via SQLAlchemy (async) — users, courses, documents metadata
+- Qdrant — vector embeddings
+
+### Infrastructure (local dev → demo)
+- Docker Compose for Qdrant + PostgreSQL locally
+- Environment variables via .env files (never hardcode keys)
+
+---
+
+## AI ARCHITECTURE — CORE RAG PIPELINE
+
+```
+PDF Upload → S3/Local Storage
+     ↓
+LlamaIndex Parser (extracts text + metadata)
+     ↓
+Hierarchical Chunking (2048 → 512 → 128 tokens)
+     ↓
+OpenAI Embeddings (text-embedding-3-small)
+     ↓
+Qdrant Vector Store (with metadata filters: course_id, professor_id)
+     ↓
+[At query time]
+User Question → HyDE Query Expansion → Hybrid Retrieval (Dense + BM25)
+     ↓
+Cohere Reranker (top 20 → top 5)
+     ↓
+GPT-4o with grounded prompt + citation injection
+     ↓
+Streaming response to frontend
+```
+
+---
+
+## CODING RULES — ALWAYS FOLLOW
+
+### General
+- Always use async/await — never blocking calls in FastAPI
+- All API routes return consistent JSON: `{ success: bool, data: any, error: str | null }`
+- Every function must have a docstring explaining what it does
+- Use Pydantic models for ALL request/response schemas in FastAPI
+- Use TypeScript interfaces for ALL API response types in frontend
+- Never hardcode API keys — always use os.getenv() in Python, process.env in JS
+
+### Python / FastAPI
+- Use `async def` for all route handlers
+- SQLAlchemy models go in `backend/models/`
+- Pydantic schemas go in `backend/schemas/`
+- AI pipeline logic goes in `backend/services/`
+- API routes go in `backend/routers/`
+- Config/settings go in `backend/core/config.py` using pydantic-settings
+- Always handle exceptions with try/except and return proper HTTP error codes
+
+### Next.js / TypeScript
+- All pages go in `frontend/app/` (App Router structure)
+- Reusable components go in `frontend/components/`
+- API calls go in `frontend/lib/api.ts`
+- Types go in `frontend/types/`
+- Use Server Components by default, Client Components only when needed (mark with 'use client')
+- Always handle loading and error states in UI
+
+### RAG / AI Code
+- All LangChain/LLM code goes in `backend/services/rag/`
+- Prompts go in `backend/services/rag/prompts.py` as named constants
+- Never put raw prompt strings inside route handlers
+- Always filter Qdrant queries by course_id — never allow cross-course retrieval
+- Every LLM call must be traced in LangSmith
+- Citations must always be included in responses
+
+---
+
+## FILE NAMING CONVENTIONS
+
+- Python files: snake_case (e.g., `rag_service.py`)
+- TypeScript files: camelCase for utils, PascalCase for components (e.g., `ChatWindow.tsx`)
+- Environment files: `.env.local` (frontend), `.env` (backend)
+
+---
+
+## ENVIRONMENT VARIABLES REQUIRED
+
+### backend/.env
+```
+OPENAI_API_KEY=
+COHERE_API_KEY=
+LANGCHAIN_API_KEY=        # LangSmith
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=mini-professor
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/miniprofessor
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=           # leave empty for local
+UPLOAD_DIR=./uploads
+```
+
+### frontend/.env.local
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+---
+
+## DEMO DAY SCOPE — MVP ONLY (DO NOT SCOPE CREEP)
+
+For demo, we need exactly these features working:
+
+1. ✅ Professor can create a course
+2. ✅ Professor can upload PDFs (2-3 files)
+3. ✅ System ingests PDFs → chunks → embeds → stores in Qdrant
+4. ✅ Student can ask a question in a chat UI
+5. ✅ System retrieves relevant chunks → generates grounded answer
+6. ✅ Response streams word-by-word (like ChatGPT)
+7. ✅ Citations shown below each answer ("Source: Week3_Slides.pdf, p.12")
+8. ✅ Basic auth (professor login / student login)
+
+OUT OF SCOPE FOR DEMO (build after):
+- Voice cloning
+- Multi-agent system
+- Knowledge graphs
+- Mobile app
+- Kubernetes
+
+---
+
+## WHEN CURSOR SUGGESTS CODE
+
+- Always suggest the async version of database/API calls
+- Always include error handling
+- Always add the metadata filters when writing Qdrant queries
+- Always stream LLM responses — never wait for full completion
+- When writing RAG code, always include the citation extraction logic
+- Prefer LangChain abstractions over raw OpenAI calls
+- When writing frontend fetch calls, always handle loading + error states
+
+---
+
+## KEY PACKAGES (do not suggest alternatives unless asked)
+
+### Python
+langchain==0.2.x
+langchain-openai
+langchain-community
+langchain-qdrant
+langgraph
+llama-index
+llama-index-vector-stores-qdrant
+llama-index-embeddings-openai
+qdrant-client
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings
+python-multipart
+cohere
+ragas
+langsmith
+
+### JavaScript
+next@14
+typescript
+tailwindcss
+@tanstack/react-query
+zustand
+axios
+shadcn/ui
+lucide-react
+
+---
+
+## COMMON MISTAKES TO AVOID
+
+1. Do NOT use synchronous SQLAlchemy — always async
+2. Do NOT forget course_id filter in Qdrant queries — this causes cross-course data leakage
+3. Do NOT buffer the full LLM response — always stream
+4. Do NOT store API keys in code — always .env
+5. Do NOT use the Pages Router in Next.js — App Router only
+6. Do NOT skip Pydantic validation on incoming requests
+7. Do NOT mix LlamaIndex and LangChain retrieval — use LlamaIndex for ingestion, LangChain for retrieval/generation
