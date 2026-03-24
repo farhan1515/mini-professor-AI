@@ -5,7 +5,7 @@ import { getMyCourses, getDocuments, uploadPDF, publishCourse, Course, Document,
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, FileText, Brain, Globe, CheckCircle, Mic, MicOff } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Brain, Globe, CheckCircle, Mic, MicOff, BarChart3 } from "lucide-react";
 
 function VoiceRecorder({ courseId }: { courseId: string }) {
     const [recording, setRecording] = useState(false);

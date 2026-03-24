@@ -113,8 +113,8 @@ export default function AnalyticsPage() {
                 {/* Sentiment Banner */}
                 {analysis.sentiment && (
                     <div className={`rounded-xl p-4 border flex items-center gap-3 ${analysis.sentiment === "positive" ? "bg-green-950 border-green-800" :
-                            analysis.sentiment === "confused" ? "bg-red-950 border-red-800" :
-                                "bg-slate-800 border-slate-700"
+                        analysis.sentiment === "confused" ? "bg-red-950 border-red-800" :
+                            "bg-slate-800 border-slate-700"
                         }`}>
                         <span className="text-2xl">
                             {analysis.sentiment === "positive" ? "😊" :

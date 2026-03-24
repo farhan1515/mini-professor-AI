@@ -2,13 +2,19 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.core.config import settings
 
+# Detect if we're connecting to a remote DB (Neon) and enable SSL
+connect_args = {}
+if "neon.tech" in settings.database_url or "amazonaws" in settings.database_url:
+    connect_args["ssl"] = "require"
+
 engine = create_async_engine(
     settings.async_database_url,
     echo=False,
     pool_pre_ping=True,
     pool_recycle=300,
     pool_size=5,
-    max_overflow=10
+    max_overflow=10,
+    connect_args=connect_args
 )
 
 AsyncSessionLocal = sessionmaker(
