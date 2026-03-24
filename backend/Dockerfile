@@ -16,13 +16,3 @@ RUN mkdir -p uploads
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-Also create **`backend/.dockerignore`** (new file):
-```
-venv/
-__pycache__/
-*.pyc
-.env
-uploads/
-.DS_Store
