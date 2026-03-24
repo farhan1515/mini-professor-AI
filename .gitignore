@@ -1,1 +1,26 @@
+# ── Secrets ──
 .env*
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# ── Node / Next.js ──
+node_modules/
+.next/
+out/
+
+# ── Uploads (large PDFs shouldn't be in Git) ──
+backend/uploads/
+
+# ── OS junk ──
+.DS_Store
+Thumbs.db
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp

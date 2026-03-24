@@ -178,27 +178,32 @@ export const clearChatHistory = async (courseId: string) => {
 };
 
 export const getVoiceStatus = async (courseId: string) => {
-  const res = await api.get(`/voice/${courseId}/status`);
-  return res.data.data;
+    const res = await api.get(`/voice/${courseId}/status`);
+    return res.data.data;
 };
 
 export const speakText = async (courseId: string, text: string): Promise<Blob> => {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/voice/speak`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ course_id: courseId, text }),
-  });
-  if (!res.ok) throw new Error("TTS failed");
-  return res.blob();
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/voice/speak`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ course_id: courseId, text }),
+    });
+    if (!res.ok) throw new Error("TTS failed");
+    return res.blob();
 };
 
 export const uploadVoiceSample = async (courseId: string, audioBlob: Blob) => {
-  const formData = new FormData();
-  formData.append("file", audioBlob, "voice_sample.mp3");
-  const res = await api.post(`/voice/${courseId}/clone`, formData);
-  return res.data.data;
+    const formData = new FormData();
+    formData.append("file", audioBlob, "voice_sample.mp3");
+    const res = await api.post(`/voice/${courseId}/clone`, formData);
+    return res.data.data;
+};
+
+export const getCourseAnalytics = async (courseId: string) => {
+    const res = await api.get(`/analytics/${courseId}`);
+    return res.data.data;
 };

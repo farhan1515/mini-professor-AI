@@ -246,12 +246,28 @@ export default function CourseDetailPage() {
 
                 {/* Actions */}
                 <div className="flex gap-3">
-                    <Button onClick={() => router.push(`/professor/courses/${courseId}/train`)} className="flex-1 bg-violet-600 hover:bg-violet-700 h-12">
+                    <Button
+                        onClick={() => router.push(`/professor/courses/${courseId}/train`)}
+                        className="flex-1 bg-violet-600 hover:bg-violet-700 h-12"
+                    >
                         <Brain className="w-4 h-4 mr-2" /> Train Mini Professor
                     </Button>
+                    <Button
+                        onClick={() => router.push(`/professor/courses/${courseId}/analytics`)}
+                        variant="outline"
+                        className="flex-1 border-slate-600 hover:bg-slate-800 h-12"
+                    >
+                        <BarChart3 className="w-4 h-4 mr-2" /> View Analytics
+                    </Button>
                     {!course?.is_published && (
-                        <Button onClick={handlePublish} disabled={publishing || docs.length === 0} variant="outline" className="flex-1 border-green-700 text-green-400 hover:bg-green-950 h-12">
-                            <Globe className="w-4 h-4 mr-2" />{publishing ? "Publishing..." : "Publish Course"}
+                        <Button
+                            onClick={handlePublish}
+                            disabled={publishing || docs.length === 0}
+                            variant="outline"
+                            className="flex-1 border-green-700 text-green-400 hover:bg-green-950 h-12"
+                        >
+                            <Globe className="w-4 h-4 mr-2" />
+                            {publishing ? "Publishing..." : "Publish"}
                         </Button>
                     )}
                 </div>
