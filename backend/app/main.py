@@ -13,6 +13,7 @@ app.add_middleware(
         "http://localhost:3000",
         settings.frontend_url,
         "https://mini-professor.vercel.app",
+        "https://mini-professor-ai.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
