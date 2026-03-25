@@ -8,7 +8,10 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 from app.core.config import settings
 
 openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
-qdrant_client = QdrantClient(url=settings.qdrant_url)
+qdrant_client = QdrantClient(
+    url=settings.qdrant_url,
+    api_key=settings.qdrant_api_key if settings.qdrant_api_key else None,
+)
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
     """Split text into overlapping chunks."""

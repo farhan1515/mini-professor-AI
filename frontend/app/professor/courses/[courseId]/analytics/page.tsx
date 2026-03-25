@@ -84,8 +84,8 @@ export default function AnalyticsPage() {
                         <p className="text-slate-400 text-sm">What your students are struggling with</p>
                     </div>
                 </div>
-                <Button onClick={() => load(true)} disabled={refreshing} variant="outline" size="sm" className="border-slate-600">
-                    <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                <Button onClick={() => load(true)} disabled={refreshing} variant="outline" size="sm" className="border-slate-600 text-black">
+                    <RefreshCw className={`w-4 h-4 text-black mr-2 ${refreshing ? "animate-spin" : ""}`} />
                     Refresh
                 </Button>
             </div>
@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
                     <Card className="p-6 bg-slate-900 border-slate-800">
                         <div className="flex items-center gap-2 mb-5">
                             <BarChart3 className="w-5 h-5 text-violet-400" />
-                            <h2 className="font-semibold text-lg">Most Asked Topics</h2>
+                            <h2 className="font-semibold text-lg text-white">Most Asked Topics</h2>
                         </div>
                         {analysis.top_topics?.length > 0 ? (
                             <div className="space-y-3">
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
                     <Card className="p-6 bg-slate-900 border-slate-800">
                         <div className="flex items-center gap-2 mb-5">
                             <AlertTriangle className="w-5 h-5 text-yellow-400" />
-                            <h2 className="font-semibold text-lg">Confusion Areas</h2>
+                            <h2 className="font-semibold text-lg text-white">Confusion Areas</h2>
                         </div>
                         {analysis.confusion_areas?.length > 0 ? (
                             <div className="space-y-3">
@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
                     <Card className="p-6 bg-violet-950 border-violet-800">
                         <div className="flex items-center gap-2 mb-4">
                             <Lightbulb className="w-5 h-5 text-yellow-400" />
-                            <h2 className="font-semibold text-lg">AI Suggestions For You</h2>
+                            <h2 className="font-semibold text-lg text-white">AI Suggestions For You</h2>
                             <Badge className="bg-violet-900 text-violet-300 text-xs ml-1">Powered by Mini Professor</Badge>
                         </div>
                         <div className="space-y-3">
@@ -215,7 +215,7 @@ export default function AnalyticsPage() {
                 <Card className="p-6 bg-slate-900 border-slate-800">
                     <div className="flex items-center gap-2 mb-5">
                         <Clock className="w-5 h-5 text-slate-400" />
-                        <h2 className="font-semibold text-lg">Recent Student Questions</h2>
+                        <h2 className="font-semibold text-lg text-white">Recent Student Questions</h2>
                     </div>
                     {recent_questions?.length > 0 ? (
                         <div className="space-y-2">

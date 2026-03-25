@@ -5,7 +5,10 @@ from app.core.config import settings
 from app.services.rag.prompt_builder import build_professor_system_prompt
 
 openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
-qdrant_client = QdrantClient(url=settings.qdrant_url)
+qdrant_client = QdrantClient(
+    url=settings.qdrant_url,
+    api_key=settings.qdrant_api_key if settings.qdrant_api_key else None,
+)
 
 async def retrieve_context(query, collection_name, course_id, top_k=5):
     response = await openai_client.embeddings.create(

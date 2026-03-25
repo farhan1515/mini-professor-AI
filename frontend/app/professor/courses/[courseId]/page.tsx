@@ -254,8 +254,7 @@ export default function CourseDetailPage() {
                     </Button>
                     <Button
                         onClick={() => router.push(`/professor/courses/${courseId}/analytics`)}
-                        variant="outline"
-                        className="flex-1 border-slate-600 hover:bg-slate-800 h-12"
+                        className="flex-1 bg-slate-800 text-violet-400 border border-slate-600 hover:bg-slate-700 hover:text-violet-300 h-12"
                     >
                         <BarChart3 className="w-4 h-4 mr-2" /> View Analytics
                     </Button>

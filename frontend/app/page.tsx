@@ -73,11 +73,7 @@ export default function LandingPage() {
     loadFromStorage();
   }, []);
 
-  // If logged in redirect to dashboard
-  useEffect(() => {
-    if (user?.role === "professor") router.push("/professor/courses");
-    else if (user?.role === "student") router.push("/student/browse");
-  }, [user]);
+  // Show landing page always — user can sign in from nav
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">

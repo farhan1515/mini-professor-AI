@@ -19,7 +19,10 @@ async def clone_voice(audio_bytes: bytes, professor_name: str, course_name: str)
         if response.status_code != 200:
             raise Exception(f"ElevenLabs error: {response.text}")
         data = response.json()
-        return {"voice_id": data["voice_id"], "voice_name": data["name"]}
+        print(f"✅ Voice cloned! Response: {data}")
+        voice_id = data.get("voice_id", "")
+        voice_name = data.get("name", f"{professor_name} - {course_name}")
+        return {"voice_id": voice_id, "voice_name": voice_name}
 
 
 async def text_to_speech(text: str, voice_id: str) -> bytes:
