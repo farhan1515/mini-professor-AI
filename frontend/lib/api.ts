@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Strip any trailing slashes from the URL (e.g. if Vercel env var has one)
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = RAW_API_URL.replace(/\/+$/, "");
 
 export const api = axios.create({ baseURL: API_URL });
 
