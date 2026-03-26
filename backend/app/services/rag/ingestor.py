@@ -51,6 +51,11 @@ def ensure_collection(collection_name: str):
             collection_name=collection_name,
             vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
         )
+        qdrant_client.create_payload_index(
+            collection_name=collection_name,
+            field_name="course_id",
+            field_schema="keyword"
+        )
         print(f"✅ Created Qdrant collection: {collection_name}")
 
 async def ingest_pdf(
