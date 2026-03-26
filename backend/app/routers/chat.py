@@ -168,15 +168,20 @@ Material: {context}""")
 
 @router.post("/summarize")
 async def summarize(request: SummaryRequest, db: AsyncSession = Depends(get_db)):
-    course, persona = await get_course_and_persona(request.course_id, db)
-    chunks = await retrieve_context("main topics overview summary key concepts", course.qdrant_collection, request.course_id, top_k=10)
-    if not chunks:
-        raise HTTPException(400, "No materials uploaded")
-    context = "\n\n".join([c["text"] for c in chunks])
-    result = await _llm_call(f"""Analyze Professor {course.professor_name}'s {course.name} materials.
+    try:
+        course, persona = await get_course_and_persona(request.course_id, db)
+        chunks = await retrieve_context("main topics overview summary key concepts", course.qdrant_collection, request.course_id, top_k=10)
+        if not chunks:
+            raise HTTPException(400, "No materials uploaded")
+        context = "\n\n".join([c["text"] for c in chunks])
+        result = await _llm_call(f"""Analyze Professor {course.professor_name}'s {course.name} materials.
 Return JSON: {{"overview":"2-3 sentence summary","key_topics":["topic1","topic2","topic3","topic4","topic5"],"suggested_questions":["q1","q2","q3","q4"]}}
 Materials: {context}""")
-    return {"success": True, "data": json.loads(result)}
+        return {"success": True, "data": json.loads(result)}
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        return {"success": False, "error": str(e), "trace": error_msg}
 
 
 @router.post("/assignment-help")
