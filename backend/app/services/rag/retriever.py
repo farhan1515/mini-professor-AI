@@ -16,18 +16,15 @@ async def retrieve_context(query, collection_name, course_id, top_k=5):
     )
     query_embedding = response.data[0].embedding
 
-    try:
-        results = qdrant_client.search(
-            collection_name=collection_name,
-            query_vector=query_embedding,
-            query_filter=Filter(must=[FieldCondition(key="course_id", match=MatchValue(value=course_id))]),
-            limit=top_k,
-            with_payload=True
-        )
-        return [{"text": r.payload["text"], "filename": r.payload["filename"], "page": r.payload["page"], "score": r.score} for r in results]
-    except Exception as e:
-        print(f"⚠️ Qdrant search failed (likely collection doesn't exist yet): {e}")
-        return []
+    results = qdrant_client.search(
+        collection_name=collection_name,
+        query_vector=query_embedding,
+        query_filter=Filter(must=[FieldCondition(key="course_id", match=MatchValue(value=course_id))]),
+        limit=top_k,
+        with_payload=True
+    )
+
+    return [{"text": r.payload["text"], "filename": r.payload["filename"], "page": r.payload["page"], "score": r.score} for r in results]
 
 async def generate_answer_stream(query, context_chunks, history=[], professor_name="Professor", course_name="this course", persona=None):
     context = "\n\n".join([
