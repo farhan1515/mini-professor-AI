@@ -8,10 +8,34 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0px); }
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
 }
 
 @layer base {
   :root {
+    --blue: #005596;
+    --blue-light: #EBF3FB;
+    --blue-mid: #CCE2F2;
+    --gold: #FFCE00;
+    --gold-light: #FFF8CC;
+    --gold-mid: #FFE566;
+    --grey: #58595B;
+    --dark: #1A1A2E;
+    --bg: #F8F9FA;
+    --card: #FFFFFF;
+    --border: #E4E7EC;
+    --text-primary: #1A1A2E;
+    --text-secondary: #58595B;
+    --text-muted: #9CA3AF;
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -47,6 +71,20 @@
   }
 
   .dark {
+    --blue: #005596;
+    --blue-light: #1A2E44;
+    --blue-mid: #003B6B;
+    --gold: #FFCE00;
+    --gold-light: #4A3E00;
+    --gold-mid: #B29000;
+    --grey: #9CA3AF;
+    --dark: #0F0F1A;
+    --bg: #1A1A2E;
+    --card: #25253A;
+    --border: #3A3A54;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A1A1B5;
+    --text-muted: #6B6B80;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

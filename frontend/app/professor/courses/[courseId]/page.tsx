@@ -2,10 +2,9 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getMyCourses, getDocuments, uploadPDF, publishCourse, Course, Document, uploadVoiceSample } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, FileText, Brain, Globe, CheckCircle, Mic, MicOff, BarChart3 } from "lucide-react";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SectionEyebrow } from "@/components/SectionEyebrow";
+import { ArrowLeft, Upload, FileText, Brain, Globe, CheckCircle, Mic, MicOff, BarChart3, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 function VoiceRecorder({ courseId }: { courseId: string }) {
@@ -48,72 +47,78 @@ function VoiceRecorder({ courseId }: { courseId: string }) {
     const handleUpload = async () => {
         if (!audioBlob) return;
         setUploading(true);
-        const toastId = toast.loading("Cloning your voice with ElevenLabs...");
+        const toastId = toast.loading("Cloning your voice...");
         try {
             await uploadVoiceSample(courseId, audioBlob);
             setDone(true);
-            toast.success("Voice cloned! Students will hear your voice.", { id: toastId });
+            toast.success("Voice cloned successfully!", { id: toastId });
         } catch {
-            toast.error("Voice upload failed. Make sure your sample is at least 30 seconds.", { id: toastId });
+            toast.error("Upload failed.", { id: toastId });
         }
         setUploading(false);
     };
 
     return (
-        <div className="space-y-4">
-            {!recording && !audioBlob && (
-                <div>
-                    <p className="text-slate-400 text-sm mb-3">
-                        Read aloud for <strong className="text-white">60 seconds</strong> — your course intro, a lecture excerpt, or just explain a concept naturally. The more natural the better.
-                    </p>
-                    <Button onClick={startRecording} className="bg-red-600 hover:bg-red-700">
-                        <Mic className="w-4 h-4 mr-2" /> Start Recording
-                    </Button>
-                </div>
-            )}
+        <div className="rounded-2xl overflow-hidden shadow-lg mt-8" style={{ background: "linear-gradient(135deg, #1A1A2E 0%, #005596 100%)" }}>
+            <div className="p-8 text-white relative">
+                {uploading && (
+                    <div className="absolute top-0 left-0 h-1 bg-gold transition-all duration-300" style={{ width: "60%" }} />
+                )}
 
-            {recording && (
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-red-950 border border-red-700 rounded-xl px-4 py-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                        <span className="text-red-300 font-mono text-lg">{seconds}s</span>
-                        <span className="text-red-400 text-sm">Recording...</span>
-                    </div>
-                    <Button onClick={stopRecording} variant="outline" className="border-slate-600">
-                        <MicOff className="w-4 h-4 mr-2" /> Stop
-                    </Button>
+                <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">🎙️</span>
+                    <h2 className="text-xl font-bold tracking-tight">Clone Your Voice</h2>
+                    <span className="text-[11px] font-bold bg-gold text-dark px-2.5 py-1 rounded-full uppercase tracking-wider ml-2">Premium</span>
                 </div>
-            )}
+                <p className="text-white/80 text-sm mb-6 max-w-xl">
+                    Students will hear AI answers delivered in your actual voice. Record a 60-second natural response.
+                </p>
 
-            {audioBlob && !done && (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-3 bg-slate-800 rounded-xl p-4">
-                        <CheckCircle className="w-5 h-5 text-green-400" />
-                        <div>
-                            <p className="text-white text-sm font-medium">Recording complete ({seconds}s)</p>
-                            <p className="text-slate-400 text-xs">Ready to clone your voice</p>
+                {!recording && !audioBlob && (
+                    <button onClick={startRecording} className="bg-white text-blue hover:bg-bg px-6 py-3 rounded-xl font-bold transition-all flex items-center shadow-md">
+                        <Mic className="w-5 h-5 mr-2" /> Start Recording
+                    </button>
+                )}
+
+                {recording && (
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3 bg-dark/40 border border-white/10 rounded-xl px-5 py-3 relative overflow-hidden">
+                            {/* Pulsing rings */}
+                            <div className="absolute left-6 w-3 h-3 bg-gold rounded-full animate-[ping_1.5s_ease-in-out_infinite]" />
+                            <div className="w-3 h-3 bg-gold rounded-full z-10" />
+                            <span className="text-white font-mono text-xl ml-2 font-bold">{seconds}s</span>
+                            <span className="text-white/70 text-sm font-medium uppercase tracking-widest ml-4">Recording</span>
                         </div>
+                        <button onClick={stopRecording} className="bg-bg text-dark hover:bg-border px-5 py-3 rounded-xl font-bold transition-all flex items-center">
+                            <MicOff className="w-5 h-5 mr-2" /> Stop
+                        </button>
                     </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleUpload} disabled={uploading} className="bg-violet-600 hover:bg-violet-700">
-                            {uploading ? "Cloning voice..." : "🎙️ Clone My Voice"}
-                        </Button>
-                        <Button onClick={() => { setAudioBlob(null); setSeconds(0); }} variant="outline" className="border-slate-600">
-                            Re-record
-                        </Button>
-                    </div>
-                </div>
-            )}
+                )}
 
-            {done && (
-                <div className="flex items-center gap-3 bg-green-950 border border-green-700 rounded-xl p-4">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <div>
-                        <p className="text-green-300 font-medium">Voice cloned successfully!</p>
-                        <p className="text-slate-400 text-sm">Students will now hear answers in your voice</p>
+                {audioBlob && !done && (
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 bg-white/10 rounded-xl px-5 py-3">
+                            <CheckCircle className="w-5 h-5 text-gold" />
+                            <div>
+                                <p className="text-white font-bold text-sm">Recording complete ({seconds}s)</p>
+                            </div>
+                        </div>
+                        <button onClick={handleUpload} disabled={uploading} className="bg-gold hover:bg-gold-mid text-dark px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+                            {uploading ? "Cloning..." : "Clone My Voice"}
+                        </button>
+                        <button onClick={() => { setAudioBlob(null); setSeconds(0); }} className="text-white/70 hover:text-white text-sm font-bold underline underline-offset-4">
+                            Retake
+                        </button>
                     </div>
-                </div>
-            )}
+                )}
+
+                {done && (
+                    <div className="flex items-center gap-3 bg-green-500/20 border border-green-500/30 rounded-xl p-4 w-max text-green-100">
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <span className="font-bold">Voice cloned & active</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -142,9 +147,9 @@ export default function CourseDetailPage() {
             await uploadPDF(courseId, e.target.files[0]);
             const updated = await getDocuments(courseId);
             setDocs(updated);
-            toast.success("PDF uploaded and indexed successfully!", { id: toastId });
+            toast.success("PDF uploaded and indexed!", { id: toastId });
         } catch {
-            toast.error("Upload failed. Please try again.", { id: toastId });
+            toast.error("Upload failed.", { id: toastId });
         }
         setUploading(false);
         e.target.value = "";
@@ -156,132 +161,178 @@ export default function CourseDetailPage() {
         try {
             await publishCourse(courseId);
             if (course) setCourse({ ...course, is_published: true });
-            toast.success("Course published! Students can now enroll.", { id: toastId });
+            toast.success("Course published!", { id: toastId });
         } catch {
-            toast.error("Failed to publish. Try again.", { id: toastId });
+            toast.error("Failed to publish.", { id: toastId });
         }
         setPublishing(false);
     };
 
     const steps = [
-        { num: 1, label: "Upload Course Materials", desc: "Upload all your PDFs — lecture notes, slides, assignments", done: docs.length > 0, action: null },
-        { num: 2, label: "Train Your Mini Professor", desc: "Set teaching style, tone, and your personal guidelines", done: false, action: () => router.push(`/professor/courses/${courseId}/train`) },
-        { num: 3, label: "Publish to Students", desc: "Make your course visible so students can enroll", done: course?.is_published || false, action: null },
+        { num: 1, label: "Upload Course Materials", desc: "Upload lecture notes, slides, assignments", done: docs.length > 0, action: null },
+        { num: 2, label: "Train Your AI Clone", desc: "Set teaching style, tone, and guidelines", done: false, action: () => router.push(`/professor/courses/${courseId}/train`) },
+        { num: 3, label: "Publish to Students", desc: "Make visible for enrollment", done: course?.is_published || false, action: null },
     ];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
-            <div className="max-w-3xl mx-auto">
-                <button onClick={() => router.push("/professor/courses")} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> My Courses
-                </button>
+        <div className="flex h-screen overflow-hidden bg-bg font-sans">
+            <AppSidebar />
 
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold">{course?.name || "Loading..."}</h1>
-                        <p className="text-slate-400 mt-1">{course?.subject} • {course?.professor_name}</p>
-                    </div>
-                    <Badge className={course?.is_published ? "bg-green-900 text-green-300" : "bg-slate-700 text-slate-300"}>
-                        {course?.is_published ? "Published" : "Draft"}
-                    </Badge>
-                </div>
+            <main className="flex-1 ml-64 overflow-y-auto relative">
+                {/* HERO SECTION */}
+                <div
+                    className="bg-dark pt-12 pb-16 px-12 relative overflow-hidden"
+                >
+                    <div
+                        className="absolute inset-0 z-0"
+                        style={{
+                            backgroundImage: "radial-gradient(rgba(255,206,0,0.15) 1px, transparent 1px)",
+                            backgroundSize: "20px 20px"
+                        }}
+                    />
+                    <div className="max-w-4xl relative z-10">
+                        <button onClick={() => router.push("/professor/courses")} className="flex items-center gap-2 text-white/60 hover:text-white mb-6 uppercase tracking-wider text-[11px] font-bold transition-colors">
+                            <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+                        </button>
 
-                {/* Setup Steps */}
-                <div className="space-y-4 mb-8">
-                    <h2 className="text-lg font-semibold text-slate-300">Setup Checklist</h2>
-                    {steps.map((step) => (
-                        <Card key={step.num} className={`p-5 border transition-all ${step.done ? "bg-green-950 border-green-800" : "bg-slate-900 border-slate-800"}`}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step.done ? "bg-green-600" : "bg-slate-700"}`}>
-                                        {step.done ? <CheckCircle className="w-4 h-4" /> : step.num}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-white">{step.label}</p>
-                                        <p className="text-sm text-slate-400">{step.desc}</p>
-                                    </div>
-                                </div>
-                                {step.action && !step.done && (
-                                    <Button onClick={step.action} size="sm" className="bg-violet-600 hover:bg-violet-700">
-                                        <Brain className="w-4 h-4 mr-2" /> Train Now
-                                    </Button>
-                                )}
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Documents */}
-                <Card className="p-6 bg-slate-900 border-slate-800 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-white">Uploaded Materials ({docs.length})</h2>
-                        <label className="cursor-pointer">
-                            <Button size="sm" className="bg-violet-600 hover:bg-violet-700" disabled={uploading} asChild>
-                                <span><Upload className="w-4 h-4 mr-2" />{uploading ? "Uploading..." : "Upload PDF"}</span>
-                            </Button>
-                            <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
-                        </label>
-                    </div>
-                    {docs.length === 0 ? (
-                        <p className="text-slate-500 text-sm text-center py-6">No materials uploaded yet. Upload your first PDF.</p>
-                    ) : (
-                        <div className="space-y-2">
-                            {docs.map((doc) => (
-                                <div key={doc.id} className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-3">
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="w-4 h-4 text-violet-400" />
-                                        <span className="text-sm text-white">{doc.filename}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge className="bg-slate-700 text-slate-300 text-xs">{doc.chunk_count} chunks</Badge>
-                                        <Badge className="bg-green-900 text-green-300 text-xs">{doc.status}</Badge>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="bg-gold text-dark px-3 py-1 rounded font-bold text-xs uppercase tracking-widest shadow-sm">
+                                {course?.subject || "Subject"}
+                            </span>
+                            <span className={`px-3 py-1 rounded font-bold text-xs uppercase shadow-sm border ${course?.is_published ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-transparent text-white/80 border-white/20"
+                                }`}>
+                                {course?.is_published ? "Published ✓" : "Draft"}
+                            </span>
                         </div>
-                    )}
-                </Card>
-
-                {/* Voice Cloning Card */}
-                <Card className="p-6 bg-slate-900 border-slate-800 border-2 border-violet-800">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-2xl">🎙️</span>
-                        <h2 className="font-semibold text-white">Clone Your Voice</h2>
-                        <span className="text-xs bg-violet-900 text-violet-300 px-2 py-0.5 rounded-full ml-2">Premium Feature</span>
+                        <h1 className="text-white text-[32px] md:text-[40px] font-[800] tracking-tight leading-tight">
+                            {course?.name || "Loading Course..."}
+                        </h1>
                     </div>
-                    <p className="text-slate-400 text-sm mb-4">
-                        Students will hear AI answers delivered in <strong className="text-white">your actual voice</strong>. This is what makes Mini Professor truly unique.
-                    </p>
-                    <VoiceRecorder courseId={courseId} />
-                </Card>
-
-                {/* Actions */}
-                <div className="flex gap-3">
-                    <Button
-                        onClick={() => router.push(`/professor/courses/${courseId}/train`)}
-                        className="flex-1 bg-violet-600 hover:bg-violet-700 h-12"
-                    >
-                        <Brain className="w-4 h-4 mr-2" /> Train Mini Professor
-                    </Button>
-                    <Button
-                        onClick={() => router.push(`/professor/courses/${courseId}/analytics`)}
-                        className="flex-1 bg-slate-800 text-violet-400 border border-slate-600 hover:bg-slate-700 hover:text-violet-300 h-12"
-                    >
-                        <BarChart3 className="w-4 h-4 mr-2" /> View Analytics
-                    </Button>
-                    {!course?.is_published && (
-                        <Button
-                            onClick={handlePublish}
-                            disabled={publishing || docs.length === 0}
-                            variant="outline"
-                            className="flex-1 border-green-700 text-green-400 hover:bg-green-950 h-12"
-                        >
-                            <Globe className="w-4 h-4 mr-2" />
-                            {publishing ? "Publishing..." : "Publish"}
-                        </Button>
-                    )}
                 </div>
-            </div>
+
+                <div className="max-w-4xl px-12 py-10 -mt-8 relative z-20">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* MAIN LEFT */}
+                        <div className="lg:col-span-2 space-y-10">
+
+                            {/* SETUP CHECKLIST */}
+                            <section>
+                                <SectionEyebrow label="SETUP" heading="Course Checklist" />
+                                <div className="space-y-3 mt-4">
+                                    {steps.map((step) => {
+                                        const borderColor = step.done ? "border-l-[#10B981]" : (step.num === 1 || docs.length > 0 && !course?.is_published ? "border-l-blue" : "border-l-border");
+
+                                        return (
+                                            <div key={step.num} className={`bg-white rounded-xl border border-border border-l-[4px] shadow-sm p-5 flex items-center justify-between ${borderColor}`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step.done ? "bg-[#ECFDF5] text-[#10B981]" : "bg-bg text-text-muted border border-border"
+                                                        }`}>
+                                                        {step.done ? "✓" : step.num}
+                                                    </div>
+                                                    <div>
+                                                        <p className={`font-bold text-[15px] ${step.done ? "text-dark" : "text-dark"}`}>{step.label}</p>
+                                                        <p className="text-text-secondary text-sm">{step.desc}</p>
+                                                    </div>
+                                                </div>
+                                                {step.action && !step.done && (
+                                                    <button onClick={step.action} className="bg-blue hover:bg-[#004080] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
+                                                        Start →
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+
+                            <VoiceRecorder courseId={courseId} />
+
+                            {/* DOCUMENTS */}
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <SectionEyebrow label="MATERIALS" heading="Knowledge Base" />
+                                    <label className="cursor-pointer bg-white border border-border hover:border-blue hover:text-blue text-dark px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 text-sm">
+                                        <Upload className="w-4 h-4" />
+                                        {uploading ? "Uploading..." : "Add PDF"}
+                                        <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
+                                    </label>
+                                </div>
+
+                                <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="bg-bg border-b border-border px-6 py-3 grid grid-cols-12 gap-4">
+                                        <div className="col-span-6 text-[11px] font-bold text-text-secondary uppercase tracking-widest">Document</div>
+                                        <div className="col-span-3 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">Chunks</div>
+                                        <div className="col-span-3 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">Status</div>
+                                    </div>
+                                    {docs.length === 0 ? (
+                                        <div className="px-6 py-12 text-center text-text-muted font-medium">
+                                            No materials uploaded yet.
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-border">
+                                            {docs.map((doc) => (
+                                                <div key={doc.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-bg transition-colors">
+                                                    <div className="col-span-6 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded bg-red-50 text-red-600 flex items-center justify-center">
+                                                            <FileText className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-dark font-medium text-sm truncate">{doc.filename}</span>
+                                                    </div>
+                                                    <div className="col-span-3 text-right text-text-secondary font-medium text-sm">
+                                                        {doc.chunk_count}
+                                                    </div>
+                                                    <div className="col-span-3 text-right">
+                                                        <span className="inline-block px-2.5 py-1 text-[11px] font-bold uppercase rounded-full bg-gold-light text-[#B8941A]">
+                                                            Ready
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                        </div>
+
+                        {/* RIGHT SIDEBAR ACTIONS */}
+                        <div className="space-y-4 pt-10">
+                            <button
+                                onClick={() => router.push(`/professor/courses/${courseId}/train`)}
+                                className="w-full bg-dark hover:bg-black text-white p-5 rounded-2xl shadow-sm transition-all group text-left relative overflow-hidden"
+                            >
+                                <div className="absolute right-0 top-0 bottom-0 w-2 bg-gold" />
+                                <Brain className="w-6 h-6 mb-3 text-gold" />
+                                <h3 className="font-bold text-lg mb-1 group-hover:underline">Train AI Clone</h3>
+                                <p className="text-white/70 text-sm">Refine teaching style</p>
+                            </button>
+
+                            <button
+                                onClick={() => router.push(`/professor/courses/${courseId}/analytics`)}
+                                className="w-full bg-white border border-border hover:border-blue p-5 rounded-2xl shadow-sm transition-all group text-left"
+                            >
+                                <BarChart3 className="w-6 h-6 mb-3 text-blue" />
+                                <h3 className="font-bold text-dark text-lg mb-1 group-hover:text-blue">View Analytics</h3>
+                                <p className="text-text-secondary text-sm">Student sentiment & questions</p>
+                            </button>
+
+                            {!course?.is_published && (
+                                <button
+                                    onClick={handlePublish}
+                                    disabled={publishing || docs.length === 0}
+                                    className="w-full bg-blue hover:bg-[#004080] disabled:bg-opacity-50 text-white p-5 rounded-2xl shadow-sm transition-all text-left flex items-center justify-between group mt-8"
+                                >
+                                    <div>
+                                        <h3 className="font-bold text-lg leading-none mb-1">Publish Course</h3>
+                                        <p className="text-white/70 text-sm">{publishing ? "Publishing..." : "Make available"}</p>
+                                    </div>
+                                    <Globe className="w-6 h-6 text-white/50 group-hover:text-white transition-colors" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }

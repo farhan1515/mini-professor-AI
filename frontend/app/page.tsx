@@ -90,8 +90,8 @@ export default function LandingPage() {
       {/* ── NAV ── */}
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5 border-b border-white/[0.06] backdrop-blur-sm bg-black/20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-lg">🎓</div>
-          <span className="font-black text-xl tracking-tight">Mini<span className="text-amber-400">Professor</span></span>
+          <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-lg shadow-md">🎓</div>
+          <span className="font-black text-xl tracking-tight">Mini<span className="text-amber-400">Professor</span>AI</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
           <a href="#how" className="hover:text-white transition-colors">How it works</a>
@@ -399,9 +399,9 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/[0.06] px-6 md:px-12 py-8">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center text-sm">🎓</div>
-            <span className="font-black tracking-tight">Mini<span className="text-amber-400">Professor</span></span>
-            <span className="text-slate-600 text-sm">— Built for University of Windsor</span>
+            <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center text-sm shadow-sm">🎓</div>
+            <span className="font-black tracking-tight flex items-center">Mini<span className="text-amber-400">Professor</span>AI</span>
+            <span className="text-slate-600 text-sm ml-2">— Built for University of Windsor</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-slate-500">
             <Link href="/login" className="hover:text-white transition-colors">Login</Link>

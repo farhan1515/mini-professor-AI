@@ -2,13 +2,9 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getPersona, savePersona, Persona } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Brain, Plus, Trash2, CheckCircle } from "lucide-react";
-import toast from "react-hot-toast";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SectionEyebrow } from "@/components/SectionEyebrow";
+import { ArrowLeft, Trash2 } from "lucide-react";
 
 const STYLES = [
     { id: "socratic", label: "Socratic", desc: "Guide with questions" },
@@ -64,168 +60,159 @@ export default function TrainPersonaPage() {
 
     const handleSave = async () => {
         setSaving(true);
-        const toastId = toast.loading("Training your Mini Professor...");
         try {
             await savePersona(courseId, persona);
             setSaved(true);
-            toast.success("Mini Professor trained and ready!", { id: toastId });
             setTimeout(() => setSaved(false), 3000);
-        } catch {
-            toast.error("Failed to save. Please try again.", { id: toastId });
-        }
+        } catch { } // Error handling toast if needed
         setSaving(false);
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
-            <div className="max-w-2xl mx-auto">
-                <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6">
-                    <ArrowLeft className="w-4 h-4" /> Back to Course
-                </button>
+        <div className="flex h-screen overflow-hidden bg-bg font-sans">
+            <AppSidebar />
 
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Brain className="w-6 h-6 text-violet-400" />
-                        <h1 className="text-2xl font-bold">Train Your Mini Professor</h1>
+            <main className="flex-1 ml-64 overflow-y-auto relative pb-28">
+                <div className="max-w-3xl mx-auto px-12 py-10">
+                    <button onClick={() => router.back()} className="flex items-center gap-2 text-text-secondary hover:text-blue mb-8 uppercase tracking-wider text-[11px] font-bold transition-colors">
+                        <ArrowLeft className="w-3.5 h-3.5" /> Back to Course
+                    </button>
+
+                    <div className="mb-10 relative">
+                        <SectionEyebrow label="TRAINING" heading="Train Your MiniProfessorAI" />
+                        <div className="h-[3px] bg-gold w-10 mt-4 rounded-full" />
+                        <p className="text-text-secondary mt-4">Fine-tune the behavior, teaching style, and constraints for your AI clone.</p>
                     </div>
-                    <p className="text-slate-400">This is what makes your AI unique. Every answer students get will reflect your teaching style and guidelines.</p>
-                </div>
 
-                <div className="space-y-6">
-
-                    {/* Teaching Style */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">Teaching Style</h2>
-                        <p className="text-slate-400 text-sm mb-4">How should your AI approach student questions?</p>
-                        <div className="grid grid-cols-5 gap-2">
-                            {STYLES.map((s) => (
-                                <button key={s.id} onClick={() => updateField("teaching_style", s.id)}
-                                    className={`p-3 rounded-xl border-2 text-center transition-all ${persona.teaching_style === s.id ? "border-violet-500 bg-violet-600/20" : "border-slate-700 hover:border-slate-600"}`}>
-                                    <p className="text-sm font-medium text-white">{s.label}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{s.desc}</p>
-                                </button>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Tone */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">Communication Tone</h2>
-                        <p className="text-slate-400 text-sm mb-4">How should your AI sound when talking to students?</p>
-                        <div className="flex gap-2">
-                            {TONES.map((t) => (
-                                <button key={t.id} onClick={() => updateField("tone", t.id)}
-                                    className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${persona.tone === t.id ? "border-violet-500 bg-violet-600/20 text-white" : "border-slate-700 text-slate-400 hover:border-slate-600"}`}>
-                                    {t.label}
-                                </button>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Teaching Philosophy */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">Your Teaching Philosophy</h2>
-                        <p className="text-slate-400 text-sm mb-3">In your own words — how do you teach? What's your approach?</p>
-                        <Textarea
-                            placeholder='e.g. "I always connect theory to real-world examples. I want students to understand the WHY before the HOW. I encourage questions and never make students feel stupid for asking."'
-                            value={persona.teaching_philosophy}
-                            onChange={(e) => updateField("teaching_philosophy", e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-white resize-none"
-                            rows={4}
-                        />
-                    </Card>
-
-                    {/* Key Emphasis */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">What to Always Emphasize</h2>
-                        <p className="text-slate-400 text-sm mb-3">What should your AI always highlight or connect back to?</p>
-                        <Textarea
-                            placeholder='e.g. "Always mention time complexity in algorithms questions. Always relate back to the exam topics covered in Week 3-7. Always remind students to test edge cases."'
-                            value={persona.key_emphasis}
-                            onChange={(e) => updateField("key_emphasis", e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-white resize-none"
-                            rows={3}
-                        />
-                    </Card>
-
-                    {/* Restrictions */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">Boundaries & Restrictions</h2>
-                        <p className="text-slate-400 text-sm mb-3">What should your AI never do? Academic integrity rules?</p>
-                        <Textarea
-                            placeholder='e.g. "Never solve assignments directly — guide students to the answer. Never reveal exam questions. If students ask for code solutions, give pseudocode only."'
-                            value={persona.restrictions}
-                            onChange={(e) => updateField("restrictions", e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-white resize-none"
-                            rows={3}
-                        />
-                    </Card>
-
-                    {/* Greeting */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <h2 className="font-semibold text-white mb-1">Custom Greeting Message</h2>
-                        <p className="text-slate-400 text-sm mb-3">What do students see when they first open your course?</p>
-                        <Textarea
-                            placeholder="e.g. Hi! I'm Prof. Smith's AI assistant for COMP 3540. I'm here to help you understand concepts deeply — not just get answers. Ask me anything!"
-                            value={persona.greeting_message}
-                            onChange={(e) => updateField("greeting_message", e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-white resize-none"
-                            rows={3}
-                        />
-                    </Card>
-
-                    {/* Example Q&A */}
-                    <Card className="p-6 bg-slate-900 border-slate-800">
-                        <div className="flex items-center justify-between mb-1">
-                            <h2 className="font-semibold text-white">Example Q&A Pairs</h2>
-                            <Button onClick={addExample} size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                <Plus className="w-3 h-3 mr-1" /> Add Example
-                            </Button>
-                        </div>
-                        <p className="text-slate-400 text-sm mb-4">Show your AI exactly how YOU would answer specific questions. This is the most powerful training tool.</p>
-                        {(persona.example_qa || []).length === 0 ? (
-                            <div className="text-center py-6 border-2 border-dashed border-slate-700 rounded-xl">
-                                <p className="text-slate-500 text-sm">Add example Q&A pairs to deeply shape your AI's responses</p>
+                    <div className="space-y-8">
+                        {/* STYLE */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-border p-8">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-2 h-2 rounded-full bg-gold" />
+                                <h3 className="font-bold text-dark text-lg">Teaching Style</h3>
                             </div>
-                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                {STYLES.map((s) => {
+                                    const selected = persona.teaching_style === s.id;
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => updateField("teaching_style", s.id)}
+                                            className={`relative p-4 rounded-xl border-2 text-center transition-all ${selected ? "border-blue bg-blue-light" : "border-border bg-white hover:border-blue/30"
+                                                }`}
+                                        >
+                                            {selected && <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 rounded-full bg-gold" />}
+                                            <p className={`font-bold text-sm ${selected ? "text-blue" : "text-dark"}`}>{s.label}</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* TONE */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-border p-8">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-2 h-2 rounded-full bg-gold" />
+                                <h3 className="font-bold text-dark text-lg">Communication Tone</h3>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {TONES.map((t) => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => updateField("tone", t.id)}
+                                        className={`px-5 py-2.5 rounded-full border text-sm font-bold transition-all ${persona.tone === t.id ? "border-blue bg-blue text-white" : "border-border bg-white text-text-secondary hover:border-text-muted"
+                                            }`}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* TEXT AREAS */}
+                        {[
+                            { id: "teaching_philosophy", label: "Teaching Philosophy", desc: "e.g. 'I want students to understand the WHY before the HOW.'" },
+                            { id: "key_emphasis", label: "Key Emphasis", desc: "What should your AI always highlight or connect back to?" },
+                            { id: "restrictions", label: "Boundaries & Restrictions", desc: "What should your AI never do?" }
+                        ].map((field) => (
+                            <div key={field.id} className="bg-white rounded-2xl shadow-sm border border-border p-8">
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-gold" />
+                                    <h3 className="font-bold text-dark text-lg">{field.label}</h3>
+                                </div>
+                                <p className="text-text-secondary text-sm mb-4">{field.desc}</p>
+                                <textarea
+                                    value={(persona as any)[field.id] || ""}
+                                    onChange={(e) => updateField(field.id, e.target.value)}
+                                    className="w-full bg-bg border-none rounded-xl p-4 text-dark focus:ring-2 focus:ring-blue focus:outline-none min-h-[120px] resize-y"
+                                    placeholder="Type here..."
+                                />
+                            </div>
+                        ))}
+
+                        {/* EXAMPLES */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-border p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-gold" />
+                                    <h3 className="font-bold text-dark text-lg">Example Q&A</h3>
+                                </div>
+                                <button onClick={addExample} className="text-blue font-bold text-sm bg-blue-light hover:bg-[#CCE2F2] px-3 py-1.5 rounded-md transition-colors">
+                                    + Add Pair
+                                </button>
+                            </div>
+
                             <div className="space-y-4">
                                 {(persona.example_qa || []).map((ex, i) => (
-                                    <div key={i} className="bg-slate-800 rounded-xl p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-violet-400 font-medium uppercase">Example {i + 1}</span>
-                                            <button onClick={() => removeExample(i)} className="text-slate-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-400 mb-1 block">Student asks:</label>
-                                            <Input value={ex.question} onChange={(e) => updateExample(i, "question", e.target.value)}
-                                                placeholder="What is the difference between TCP and UDP?" className="bg-slate-700 border-slate-600 text-white" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-400 mb-1 block">How YOU would answer:</label>
-                                            <Textarea value={ex.answer} onChange={(e) => updateExample(i, "answer", e.target.value)}
-                                                placeholder="Great question! Think of TCP as a registered mail service and UDP as dropping a letter in a mailbox..."
-                                                className="bg-slate-700 border-slate-600 text-white resize-none" rows={3} />
+                                    <div key={i} className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-border border-l-2 border-l-gold p-6 relative animate-in slide-in-from-bottom-2 duration-300">
+                                        <button onClick={() => removeExample(i)} className="absolute top-4 right-4 text-text-muted hover:text-red-500 transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <span className="font-bold text-gold mt-1">Q:</span>
+                                                <input
+                                                    value={ex.question}
+                                                    onChange={(e) => updateExample(i, "question", e.target.value)}
+                                                    placeholder="Student's question"
+                                                    className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <span className="font-bold text-blue mt-1">A:</span>
+                                                <textarea
+                                                    value={ex.answer}
+                                                    onChange={(e) => updateExample(i, "answer", e.target.value)}
+                                                    placeholder="Your ideal response"
+                                                    className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:border-blue"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </Card>
-
-                    {/* Save */}
-                    <Button onClick={handleSave} disabled={saving} className="w-full bg-violet-600 hover:bg-violet-700 h-12 text-base font-medium">
-                        <Brain className="w-4 h-4 mr-2" />
-                        {saving ? "Saving..." : saved ? "✅ Saved!" : "Save & Train Mini Professor"}
-                    </Button>
-
-                    {saved && (
-                        <div className="flex items-center gap-2 bg-green-950 border border-green-800 rounded-xl p-4">
-                            <CheckCircle className="w-5 h-5 text-green-400" />
-                            <p className="text-green-300 text-sm">Your Mini Professor has been trained! Students will now get answers in your style.</p>
                         </div>
-                    )}
+
+                    </div>
                 </div>
-            </div>
+
+                {/* STICKY SAVE BAR */}
+                <div className="fixed bottom-0 right-0 left-64 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.06)] py-4 px-12 z-50">
+                    <div className="max-w-3xl mx-auto flex items-center justify-between">
+                        <div className="text-text-secondary text-sm font-medium">
+                            {saved ? <span className="text-[#10B981]">All saved ✓</span> : <span>Unsaved changes</span>}
+                        </div>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="bg-blue hover:bg-[#004080] text-white font-bold py-3 px-8 rounded-xl transition-all shadow-sm"
+                        >
+                            {saving ? "Saving..." : "Save & Train MiniProfessorAI"}
+                        </button>
+                    </div>
+                </div>
+
+            </main>
         </div>
     );
 }

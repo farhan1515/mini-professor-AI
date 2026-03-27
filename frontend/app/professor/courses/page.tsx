@@ -3,14 +3,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMyCourses, Course } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Bot, Plus, BookOpen, Settings, LogOut, ChevronRight } from "lucide-react";
+import { AppSidebar } from "@/components/AppSidebar";
+import { CourseCard } from "@/components/CourseCard";
+import { SectionEyebrow } from "@/components/SectionEyebrow";
 
 export default function ProfessorCoursesPage() {
     const router = useRouter();
-    const { user, logout, loadFromStorage } = useAuthStore();
+    const { user, loadFromStorage } = useAuthStore();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,76 +22,73 @@ export default function ProfessorCoursesPage() {
         getMyCourses().then(setCourses).finally(() => setLoading(false));
     }, [user]);
 
-    const handleLogout = () => { logout(); router.push("/login"); };
-
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
-            {/* Navbar */}
-            <nav className="border-b border-slate-800 bg-slate-900 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-                        <Bot className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-lg">Mini Professor</span>
-                    <Badge className="bg-violet-900 text-violet-300 text-xs">Professor</Badge>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-slate-400 text-sm">{user?.name}</span>
-                    <Button onClick={handleLogout} variant="ghost" size="sm" className="text-slate-400">
-                        <LogOut className="w-4 h-4" />
-                    </Button>
-                </div>
-            </nav>
+        <div className="flex h-screen overflow-hidden bg-bg font-sans">
+            <AppSidebar />
 
-            <div className="max-w-5xl mx-auto px-6 py-10">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold">My Courses</h1>
-                        <p className="text-slate-400 mt-1">Create courses and train your personal AI teaching assistant</p>
+            <main className="flex-1 ml-64 overflow-y-auto">
+                {/* Header Banner */}
+                <div className="bg-white border-l-[4px] border-l-gold py-10 px-12 border-b border-border">
+                    <div className="max-w-5xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <h1 className="text-[28px] font-[800] text-dark tracking-tight mb-1">
+                                Good morning, Prof. {user?.name?.split(' ')[0] || "Professor"}
+                            </h1>
+                            <p className="text-text-secondary font-medium">
+                                University of Windsor • Dashboard
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => router.push("/professor/courses/new")}
+                            className="bg-blue hover:bg-[#004080] text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm w-max"
+                        >
+                            New Course
+                        </button>
                     </div>
-                    <Button onClick={() => router.push("/professor/courses/new")} className="bg-violet-600 hover:bg-violet-700">
-                        <Plus className="w-4 h-4 mr-2" /> New Course
-                    </Button>
                 </div>
 
-                {loading ? (
-                    <div className="text-center py-20 text-slate-500">Loading...</div>
-                ) : courses.length === 0 ? (
-                    <Card className="p-12 bg-slate-900 border-slate-800 text-center">
-                        <BookOpen className="w-12 h-12 mx-auto mb-4 text-violet-400 opacity-40" />
-                        <p className="text-lg font-medium text-white">No courses yet</p>
-                        <p className="text-slate-400 text-sm mt-2 mb-6">Create your first course and train your Mini Professor</p>
-                        <Button onClick={() => router.push("/professor/courses/new")} className="bg-violet-600 hover:bg-violet-700">
-                            <Plus className="w-4 h-4 mr-2" /> Create First Course
-                        </Button>
-                    </Card>
-                ) : (
-                    <div className="grid gap-4">
-                        {courses.map((course) => (
-                            <Card key={course.id} className="p-6 bg-slate-900 border-slate-800 hover:border-slate-700 transition-all cursor-pointer"
-                                onClick={() => router.push(`/professor/courses/${course.id}`)}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-violet-600/20 rounded-xl flex items-center justify-center">
-                                            <BookOpen className="w-6 h-6 text-violet-400" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-white text-lg">{course.name}</h3>
-                                            <p className="text-slate-400 text-sm">{course.subject || "No subject"} • {course.description || "No description"}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge className={course.is_published ? "bg-green-900 text-green-300" : "bg-slate-700 text-slate-300"}>
-                                            {course.is_published ? "Published" : "Draft"}
-                                        </Badge>
-                                        <ChevronRight className="w-5 h-5 text-slate-500" />
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-                )}
-            </div>
+                <div className="max-w-5xl px-12 py-10">
+                    <SectionEyebrow label="YOUR COURSES" heading="My Teaching Dashboard" />
+
+                    {loading ? (
+                        <div className="text-center py-20 text-text-muted font-medium animate-pulse">
+                            Loading your courses...
+                        </div>
+                    ) : courses.length === 0 ? (
+                        <div className="max-w-md bg-white border border-border rounded-2xl p-10 text-center mx-auto mt-12 shadow-sm">
+                            <svg className="w-24 h-24 mx-auto mb-6 opacity-30 text-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                            </svg>
+                            <h3 className="text-xl font-bold text-dark mb-2">No courses yet</h3>
+                            <p className="text-text-secondary text-sm mb-8">
+                                Create your first course and train your MiniProfessorAI in minutes
+                            </p>
+                            <button
+                                onClick={() => router.push("/professor/courses/new")}
+                                className="w-full bg-blue hover:bg-[#004080] text-white py-3 rounded-xl font-bold transition-all"
+                            >
+                                Create Course
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {courses.map((course) => (
+                                <CourseCard
+                                    key={course.id}
+                                    id={course.id}
+                                    name={course.name}
+                                    professor={course.professor_name || user?.name || ""}
+                                    subject={(course.subject as any) || "Engineering"}
+                                    studentsCount={0}
+                                    docsCount={0}
+                                    isPublished={course.is_published ?? false}
+                                    role="professor"
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 }

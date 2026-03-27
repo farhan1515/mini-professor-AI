@@ -52,6 +52,22 @@ const config = {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
         },
+        blue: {
+          DEFAULT: "var(--blue)",
+          light: "var(--blue-light)",
+          mid: "var(--blue-mid)",
+        },
+        gold: {
+          DEFAULT: "var(--gold)",
+          light: "var(--gold-light)",
+          mid: "var(--gold-mid)",
+        },
+        grey: "var(--grey)",
+        dark: "var(--dark)",
+        bg: "var(--bg)",
+        "text-primary": "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        "text-muted": "var(--text-muted)",
       },
       borderRadius: {
         lg: "var(--radius)",
