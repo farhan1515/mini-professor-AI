@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Upload, FileText, Brain, Globe, CheckCircle, Mic, MicOff, BarChart3 } from "lucide-react";
+import toast from "react-hot-toast";
 
 function VoiceRecorder({ courseId }: { courseId: string }) {
     const [recording, setRecording] = useState(false);
@@ -47,11 +48,13 @@ function VoiceRecorder({ courseId }: { courseId: string }) {
     const handleUpload = async () => {
         if (!audioBlob) return;
         setUploading(true);
+        const toastId = toast.loading("Cloning your voice with ElevenLabs...");
         try {
             await uploadVoiceSample(courseId, audioBlob);
             setDone(true);
+            toast.success("Voice cloned! Students will hear your voice.", { id: toastId });
         } catch {
-            alert("Voice upload failed. Make sure your sample is at least 30 seconds.");
+            toast.error("Voice upload failed. Make sure your sample is at least 30 seconds.", { id: toastId });
         }
         setUploading(false);
     };
@@ -134,21 +137,29 @@ export default function CourseDetailPage() {
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.[0]) return;
         setUploading(true);
+        const toastId = toast.loading(`Uploading ${e.target.files[0].name}...`);
         try {
             await uploadPDF(courseId, e.target.files[0]);
             const updated = await getDocuments(courseId);
             setDocs(updated);
-        } catch { alert("Upload failed"); }
+            toast.success("PDF uploaded and indexed successfully!", { id: toastId });
+        } catch {
+            toast.error("Upload failed. Please try again.", { id: toastId });
+        }
         setUploading(false);
         e.target.value = "";
     };
 
     const handlePublish = async () => {
         setPublishing(true);
+        const toastId = toast.loading("Publishing course...");
         try {
             await publishCourse(courseId);
             if (course) setCourse({ ...course, is_published: true });
-        } catch { alert("Failed to publish"); }
+            toast.success("Course published! Students can now enroll.", { id: toastId });
+        } catch {
+            toast.error("Failed to publish. Try again.", { id: toastId });
+        }
         setPublishing(false);
     };
 

@@ -74,7 +74,8 @@ async def speak(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    """Convert AI response text to professor's voice audio."""
+    """Convert AI response text to professor's voice audio.
+    Uses conversational rewriting to make the voice sound natural."""
 
     persona_result = await db.execute(
         select(ProfessorPersona).where(
@@ -86,9 +87,17 @@ async def speak(
     if not persona or not persona.voice_id:
         raise HTTPException(400, "Professor hasn't set up voice yet")
 
+    # Get professor name for conversational rewriting
+    course_result = await db.execute(
+        select(Course).where(Course.id == uuid.UUID(request.course_id))
+    )
+    course = course_result.scalar_one_or_none()
+    professor_name = course.professor_name if course else "Professor"
+
     audio_bytes = await text_to_speech(
         text=request.text,
-        voice_id=persona.voice_id
+        voice_id=persona.voice_id,
+        professor_name=professor_name
     )
 
     return Response(

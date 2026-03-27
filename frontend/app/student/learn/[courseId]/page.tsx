@@ -1,33 +1,54 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { getEnrolledCourses, getPersona, generateQuiz, generateFlashcards, summarizeCourse, getAssignmentHelp, streamChat, Course, Persona } from "@/lib/api";
+import {
+    getEnrolledCourses, getPersona, generateQuiz, generateFlashcards,
+    summarizeCourse, getAssignmentHelp, streamChat, Course, Persona
+} from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Bot, User, Send, ArrowLeft, Zap, BookOpen, RotateCcw, ClipboardList, Sparkles, CheckCircle, XCircle, BookMarked } from "lucide-react";
+import {
+    Bot, User, Send, ArrowLeft, Zap, BookOpen, RotateCcw,
+    ClipboardList, Sparkles, CheckCircle, XCircle, Volume2, VolumeX
+} from "lucide-react";
 import { getChatHistory, clearChatHistory, getVoiceStatus, speakText } from "@/lib/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import toast from "react-hot-toast";
 
-interface Message { role: "user" | "assistant"; content: string; sources?: { filename: string; page: number }[]; }
+interface Message {
+    role: "user" | "assistant";
+    content: string;
+    sources?: { filename: string; page: number }[];
+    isThinking?: boolean;
+}
 interface QuizQuestion { question: string; options: string[]; answer: string; explanation: string; }
 interface Flashcard { front: string; back: string; }
 interface Summary { overview: string; key_topics: string[]; suggested_questions: string[]; }
 interface AssignmentHelp { understanding: string; key_concepts: string[]; approach: string[]; hints: string[]; warning: string; }
 
+// ── Flip Card ─────────────────────────────────────────────
 function FlipCard({ card, index }: { card: Flashcard; index: number }) {
     const [flipped, setFlipped] = useState(false);
     return (
         <div className="cursor-pointer" style={{ perspective: "1000px" }} onClick={() => setFlipped(!flipped)}>
-            <div style={{ transition: "transform 0.5s", transformStyle: "preserve-3d", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)", position: "relative", height: "160px" }}>
-                <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }} className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between">
+            <div style={{
+                transition: "transform 0.5s",
+                transformStyle: "preserve-3d",
+                transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                position: "relative", height: "160px"
+            }}>
+                <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }}
+                    className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between">
                     <span className="text-xs text-violet-400 font-medium uppercase">Card {index + 1}</span>
                     <p className="text-white font-medium text-center">{card.front}</p>
                     <span className="text-xs text-slate-500 text-center">Click to flip</span>
                 </div>
-                <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0 }} className="bg-violet-900 border border-violet-600 rounded-xl p-5 flex flex-col justify-between">
+                <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0 }}
+                    className="bg-violet-900 border border-violet-600 rounded-xl p-5 flex flex-col justify-between">
                     <span className="text-xs text-violet-300 font-medium uppercase">Answer</span>
                     <p className="text-white text-sm text-center leading-relaxed">{card.back}</p>
                     <span className="text-xs text-violet-400 text-center">Click to flip back</span>
@@ -37,6 +58,105 @@ function FlipCard({ card, index }: { card: Flashcard; index: number }) {
     );
 }
 
+// ── Thinking Dots ─────────────────────────────────────────
+function ThinkingDots() {
+    return (
+        <div className="flex items-center gap-1.5 px-4 py-3">
+            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+        </div>
+    );
+}
+
+// ── Markdown Message ──────────────────────────────────────
+function MarkdownMessage({ content }: { content: string }) {
+    // Strip [Source: filename, page X] citations from inline text
+    // They're already shown as separate badges below the message
+    const cleanedContent = content.replace(/\[Source:\s*[^\]]*\]/g, '').trim();
+
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+                p: ({ children }) => <p className="mb-3 last:mb-0 text-sm leading-[1.8] text-slate-200">{children}</p>,
+                strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                em: ({ children }) => <em className="italic text-violet-300">{children}</em>,
+                h1: ({ children }) => (
+                    <h1 className="text-lg font-bold text-white mb-3 mt-2 pb-2 border-b border-slate-700">{children}</h1>
+                ),
+                h2: ({ children }) => (
+                    <h2 className="text-base font-semibold text-white mb-2 mt-3 flex items-center gap-2">
+                        <span className="w-1 h-5 bg-violet-500 rounded-full inline-block" />
+                        {children}
+                    </h2>
+                ),
+                h3: ({ children }) => (
+                    <h3 className="text-sm font-semibold text-violet-300 mb-1.5 mt-2">{children}</h3>
+                ),
+                ul: ({ children }) => <ul className="space-y-2 mb-3 ml-1 text-sm">{children}</ul>,
+                ol: ({ children }) => <ol className="space-y-3 mb-3 text-sm counter-reset-item">{children}</ol>,
+                li: ({ children, ordered, index, ...props }: any) => {
+                    // Check if parent is ordered
+                    const isOrdered = props.node?.properties?.className?.includes('ordered') ||
+                        (typeof index === 'number');
+                    return (
+                        <li className="flex items-start gap-2.5 text-slate-200 leading-relaxed">
+                            <span className="flex-shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="flex-1">{children}</span>
+                        </li>
+                    );
+                },
+                code: ({ inline, className, children, ...props }: any) => {
+                    if (inline) {
+                        return (
+                            <code className="bg-slate-900/80 text-amber-300 rounded-md px-1.5 py-0.5 text-xs font-mono border border-slate-700/50">
+                                {children}
+                            </code>
+                        );
+                    }
+                    const language = className?.replace('language-', '') || 'code';
+                    return (
+                        <div className="my-3 rounded-lg overflow-hidden border border-slate-700">
+                            <div className="bg-slate-900 px-3 py-1.5 text-xs text-slate-500 font-mono border-b border-slate-700 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-slate-600" />
+                                {language}
+                            </div>
+                            <pre className="bg-slate-900/60 p-3 overflow-x-auto text-xs font-mono text-slate-200">
+                                {children}
+                            </pre>
+                        </div>
+                    );
+                },
+                blockquote: ({ children }) => (
+                    <div className="my-3 rounded-lg bg-violet-950/30 border border-violet-800/40 p-3 flex gap-2.5">
+                        <span className="text-base mt-0.5">💡</span>
+                        <div className="text-sm text-slate-300 italic leading-relaxed [&>p]:mb-0">{children}</div>
+                    </div>
+                ),
+                a: ({ href, children }) => (
+                    <a href={href} className="text-violet-400 underline decoration-violet-400/40 hover:text-violet-300 hover:decoration-violet-300 text-sm transition-colors">{children}</a>
+                ),
+                hr: () => <hr className="border-slate-700 my-4" />,
+                table: ({ children }) => (
+                    <div className="my-3 overflow-x-auto rounded-lg border border-slate-700">
+                        <table className="w-full text-xs">{children}</table>
+                    </div>
+                ),
+                th: ({ children }) => (
+                    <th className="bg-slate-800 text-slate-300 px-3 py-2 text-left font-medium border-b border-slate-700">{children}</th>
+                ),
+                td: ({ children }) => (
+                    <td className="px-3 py-2 text-slate-300 border-b border-slate-800">{children}</td>
+                ),
+            }}
+        >
+            {cleanedContent}
+        </ReactMarkdown>
+    );
+}
+
+// ── Main Page ─────────────────────────────────────────────
 export default function LearnPage() {
     const { courseId } = useParams<{ courseId: string }>();
     const router = useRouter();
@@ -62,34 +182,41 @@ export default function LearnPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [hasVoice, setHasVoice] = useState(false);
     const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+    const [voiceLoading, setVoiceLoading] = useState<number | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [historyLoaded, setHistoryLoaded] = useState(false);
 
     useEffect(() => { loadFromStorage(); }, []);
 
     useEffect(() => {
-        getEnrolledCourses().then((courses) => {
+        if (!courseId) return;
+
+        Promise.all([
+            getEnrolledCourses(),
+            getPersona(courseId),
+            getChatHistory(courseId),
+            getVoiceStatus(courseId),
+        ]).then(([courses, personaData, history, voiceStatus]) => {
             const c = courses.find((x) => x.id === courseId);
             if (c) setCourse(c);
-        });
-        getPersona(courseId).then(setPersona);
 
-        // Load chat history from DB
-        getChatHistory(courseId).then((history) => {
+            setPersona(personaData);
+            setHasVoice(voiceStatus?.has_voice ?? false);
+
+            // If there's real chat history, use it; otherwise show greeting
             if (history && history.length > 0) {
                 setMessages(history.map((m: any) => ({
                     role: m.role,
                     content: m.content,
-                    sources: m.sources || undefined,
+                    sources: m.sources ?? undefined,
                 })));
+            } else if (personaData?.greeting_message) {
+                setMessages([{ role: "assistant", content: personaData.greeting_message }]);
             }
-        });
 
-        getVoiceStatus(courseId).then((status) => {
-            setHasVoice(status.has_voice);
+            setHistoryLoaded(true);
         });
     }, [courseId]);
-
-
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
     useEffect(() => { if (activeTab === "overview" && !summary) handleSummarize(); }, [activeTab]);
@@ -102,62 +229,117 @@ export default function LearnPage() {
             setSpeakingIndex(null);
             return;
         }
-        setSpeakingIndex(index);
+        setVoiceLoading(index);
         try {
             const blob = await speakText(courseId, text);
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
             audioRef.current = audio;
+            setVoiceLoading(null);
+            setSpeakingIndex(index);
             audio.play();
             audio.onended = () => setSpeakingIndex(null);
         } catch {
+            setVoiceLoading(null);
             setSpeakingIndex(null);
-            alert("Voice not available for this course.");
+            toast.error("Voice not available for this course yet.");
         }
     };
 
     const sendMessage = (q?: string) => {
         const msg = q || question;
         if (!msg.trim() || !course || isStreaming) return;
+
         const userMsg: Message = { role: "user", content: msg };
-        const history = messages.filter(m => m.role !== "assistant" || m.content !== persona?.greeting_message)
+        const history = messages
+            .filter(m => !m.isThinking)
             .map(m => ({ role: m.role, content: m.content }));
-        setMessages(prev => [...prev, userMsg]);
+
+        setMessages(prev => [...prev, userMsg, { role: "assistant", content: "", isThinking: true }]);
         setQuestion("");
         setIsStreaming(true);
-        let assistantMsg: Message = { role: "assistant", content: "" };
-        setMessages(prev => [...prev, assistantMsg]);
 
-        streamChat(courseId, msg, history,
-            (token) => { assistantMsg = { ...assistantMsg, content: assistantMsg.content + token }; setMessages(prev => [...prev.slice(0, -1), assistantMsg]); },
-            (sources) => { assistantMsg = { ...assistantMsg, sources }; setMessages(prev => [...prev.slice(0, -1), assistantMsg]); },
+        let assistantMsg: Message = { role: "assistant", content: "", isThinking: false };
+        let firstToken = true;
+
+        streamChat(
+            courseId, msg, history,
+            (token) => {
+                if (firstToken) {
+                    firstToken = false;
+                    // Replace the thinking indicator with real content
+                    assistantMsg = { ...assistantMsg, content: token, isThinking: false };
+                } else {
+                    assistantMsg = { ...assistantMsg, content: assistantMsg.content + token };
+                }
+                setMessages(prev => [...prev.slice(0, -1), assistantMsg]);
+            },
+            (sources) => {
+                assistantMsg = { ...assistantMsg, sources };
+                setMessages(prev => [...prev.slice(0, -1), assistantMsg]);
+            },
             () => setIsStreaming(false)
         );
     };
 
     const handleGenerateQuiz = async () => {
         setQuizLoading(true); setQuiz(null); setSelectedAnswers({}); setQuizSubmitted(false);
-        try { setQuiz(await generateQuiz(courseId)); } catch { alert("Failed"); }
+        const toastId = toast.loading("Generating quiz from course materials...");
+        try {
+            setQuiz(await generateQuiz(courseId));
+            toast.success("Quiz ready!", { id: toastId });
+        } catch {
+            toast.error("Failed to generate quiz. Try again.", { id: toastId });
+        }
         setQuizLoading(false);
     };
 
     const handleFlashcards = async () => {
         setFlashcardsLoading(true); setFlashcards(null);
-        try { setFlashcards(await generateFlashcards(courseId)); } catch { alert("Failed"); }
+        const toastId = toast.loading("Creating flashcards...");
+        try {
+            setFlashcards(await generateFlashcards(courseId));
+            toast.success("Flashcards ready!", { id: toastId });
+        } catch {
+            toast.error("Failed to generate flashcards.", { id: toastId });
+        }
         setFlashcardsLoading(false);
     };
 
     const handleSummarize = async () => {
         setSummaryLoading(true);
-        try { setSummary(await summarizeCourse(courseId)); } catch { }
+        try {
+            setSummary(await summarizeCourse(courseId));
+        } catch {
+            toast.error("Failed to load course overview.");
+        }
         setSummaryLoading(false);
     };
 
     const handleAssignmentHelp = async () => {
         if (!assignmentText.trim()) return;
         setAssignmentLoading(true); setAssignmentHelp(null);
-        try { setAssignmentHelp(await getAssignmentHelp(courseId, assignmentText)); } catch { alert("Failed"); }
+        const toastId = toast.loading("Analyzing your assignment...");
+        try {
+            setAssignmentHelp(await getAssignmentHelp(courseId, assignmentText));
+            toast.success("Here's your guidance!", { id: toastId });
+        } catch {
+            toast.error("Failed to analyze assignment.", { id: toastId });
+        }
         setAssignmentLoading(false);
+    };
+
+    const handleClearHistory = async () => {
+        try {
+            await clearChatHistory(courseId);
+            setMessages(persona?.greeting_message
+                ? [{ role: "assistant", content: persona.greeting_message }]
+                : []
+            );
+            toast.success("Chat history cleared.");
+        } catch {
+            toast.error("Failed to clear history.");
+        }
     };
 
     const quizScore = quiz ? quiz.filter((q, i) => selectedAnswers[i]?.charAt(0) === q.answer).length : 0;
@@ -173,7 +355,7 @@ export default function LearnPage() {
     return (
         <div className="flex h-screen bg-slate-950 text-white flex-col">
             {/* Header */}
-            <div className="border-b border-slate-800 bg-slate-900 px-6 py-3 flex items-center justify-between">
+            <div className="border-b border-slate-800 bg-slate-900 px-6 py-3 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-4">
                     <button onClick={() => router.push("/student/learn")} className="text-slate-400 hover:text-white transition-colors">
                         <ArrowLeft className="w-5 h-5" />
@@ -192,91 +374,140 @@ export default function LearnPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-800 bg-slate-900 overflow-x-auto">
+            <div className="flex border-b border-slate-800 bg-slate-900 overflow-x-auto flex-shrink-0">
                 {tabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? "border-b-2 border-violet-500 text-violet-400" : "text-slate-400 hover:text-white"}`}>
+                        className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
+                            ? "border-b-2 border-violet-500 text-violet-400"
+                            : "text-slate-400 hover:text-white"
+                            }`}>
                         {tab.label}
                     </button>
                 ))}
             </div>
 
-            {/* CHAT */}
+            {/* ── CHAT TAB ─────────────────────────────────────── */}
             {activeTab === "chat" && (
                 <div className="flex flex-col flex-1 overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-6 space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                 {msg.role === "assistant" && (
-                                    <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 mt-1"><Bot className="w-4 h-4" /></div>
+                                    <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 mt-1">
+                                        <Bot className="w-4 h-4" />
+                                    </div>
                                 )}
                                 <div className="max-w-2xl">
-                                    <div className={`rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-violet-600" : "bg-slate-800"}`}>
-                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                                        {isStreaming && i === messages.length - 1 && msg.role === "assistant" && (
-                                            <span className="inline-block w-2 h-4 bg-violet-400 ml-1 animate-pulse rounded" />
+                                    <div className={`rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-800 text-slate-200"}`}>
+                                        {msg.isThinking ? (
+                                            <ThinkingDots />
+                                        ) : msg.role === "assistant" ? (
+                                            <>
+                                                <MarkdownMessage content={msg.content} />
+                                                {isStreaming && i === messages.length - 1 && (
+                                                    <span className="inline-block w-2 h-4 bg-violet-400 ml-1 animate-pulse rounded" />
+                                                )}
+                                            </>
+                                        ) : (
+                                            <p className="text-sm leading-relaxed">{msg.content}</p>
                                         )}
-                                        {msg.role === "assistant" && hasVoice && msg.content !== persona?.greeting_message && (
+
+                                        {/* Voice button — 3 states: idle → loading → playing */}
+                                        {msg.role === "assistant" && !msg.isThinking && hasVoice && msg.content && msg.content !== persona?.greeting_message && (
                                             <button
                                                 onClick={() => handleSpeak(msg.content, i)}
-                                                className={`mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all ${speakingIndex === i
-                                                        ? "bg-violet-600 text-white"
-                                                        : "bg-slate-900 border border-slate-700 hover:bg-slate-950 text-slate-300"
+                                                disabled={voiceLoading === i}
+                                                className={`mt-3 flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-all ${speakingIndex === i
+                                                        ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
+                                                        : voiceLoading === i
+                                                            ? "bg-slate-700 text-slate-300 cursor-wait"
+                                                            : "bg-slate-900 border border-slate-700 hover:bg-slate-700 hover:border-violet-500/50 text-slate-300"
                                                     }`}
                                             >
-                                                {speakingIndex === i ? (
-                                                    <><span className="w-2 h-2 bg-white rounded-full animate-pulse" />Playing in professor's voice...</>
+                                                {voiceLoading === i ? (
+                                                    <>
+                                                        <div className="w-3 h-3 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                                                        <span>Preparing explanation...</span>
+                                                    </>
+                                                ) : speakingIndex === i ? (
+                                                    <>
+                                                        <VolumeX className="w-3.5 h-3.5" />
+                                                        <span>Stop</span>
+                                                        <div className="flex items-end gap-0.5 h-3">
+                                                            <span className="w-0.5 bg-white rounded-full animate-pulse" style={{ height: '60%', animationDelay: '0ms' }} />
+                                                            <span className="w-0.5 bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '150ms' }} />
+                                                            <span className="w-0.5 bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '300ms' }} />
+                                                        </div>
+                                                    </>
                                                 ) : (
-                                                    <>🔊 Listen in professor's voice</>
+                                                    <>
+                                                        <Volume2 className="w-3.5 h-3.5" />
+                                                        <span>Hear professor explain this</span>
+                                                    </>
                                                 )}
                                             </button>
                                         )}
                                     </div>
+
+                                    {/* Source citations */}
                                     {msg.sources && msg.sources.length > 0 && (
-                                        <div className="mt-2 flex gap-1 flex-wrap">
+                                        <div className="mt-2 flex gap-1.5 flex-wrap">
                                             {Array.from(new Map(msg.sources.map(s => [`${s.filename}-${s.page}`, s])).values()).map((s, j) => (
-                                                <Badge key={j} variant="outline" className="text-xs text-slate-400 border-slate-600">📄 {s.filename}, p.{s.page}</Badge>
+                                                <Badge key={j} variant="outline" className="text-xs text-slate-400 border-slate-600 bg-slate-900">
+                                                    📄 {s.filename}, p.{s.page}
+                                                </Badge>
                                             ))}
                                         </div>
                                     )}
                                 </div>
                                 {msg.role === "user" && (
-                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 mt-1"><User className="w-4 h-4" /></div>
+                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 mt-1">
+                                        <User className="w-4 h-4" />
+                                    </div>
                                 )}
                             </div>
                         ))}
-                        {messages.length === 1 && summary?.suggested_questions && (
+
+                        {/* Suggested questions (when only greeting is shown) */}
+                        {historyLoaded && messages.length <= 1 && summary?.suggested_questions && (
                             <div className="max-w-lg mx-auto space-y-2 mt-4">
                                 <p className="text-xs text-slate-500 uppercase tracking-wide text-center mb-3">Suggested questions</p>
                                 {summary.suggested_questions.map((sq, i) => (
-                                    <button key={i} onClick={() => askQuestion(sq)} className="w-full text-left px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors">{sq}</button>
+                                    <button key={i} onClick={() => askQuestion(sq)}
+                                        className="w-full text-left px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors border border-slate-700 hover:border-slate-600">
+                                        {sq}
+                                    </button>
                                 ))}
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-                    {messages.length > 1 && (
+
+                    {/* Clear history button */}
+                    {messages.filter(m => !m.isThinking).length > 1 && (
                         <div className="px-6 pt-2 flex justify-end">
-                            <button
-                                onClick={async () => {
-                                    await clearChatHistory(courseId);
-                                    setMessages(persona?.greeting_message
-                                        ? [{ role: "assistant", content: persona.greeting_message }]
-                                        : []
-                                    );
-                                }}
-                                className="text-xs text-slate-500 hover:text-red-400 transition-colors"
-                            >
+                            <button onClick={handleClearHistory} className="text-xs text-slate-500 hover:text-red-400 transition-colors">
                                 Clear history
                             </button>
                         </div>
                     )}
-                    <div className="p-4 border-t border-slate-800 bg-slate-900">
+
+                    {/* Input */}
+                    <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0">
                         <div className="flex gap-3 max-w-4xl mx-auto">
-                            <Textarea value={question} onChange={e => setQuestion(e.target.value)}
+                            <Textarea
+                                value={question}
+                                onChange={e => setQuestion(e.target.value)}
                                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                                placeholder="Ask your question..." className="flex-1 bg-slate-800 border-slate-700 text-white resize-none" rows={2} />
-                            <Button onClick={() => sendMessage()} disabled={isStreaming || !question.trim()} className="bg-violet-600 hover:bg-violet-700 self-end">
+                                placeholder="Ask your question... (Enter to send, Shift+Enter for new line)"
+                                className="flex-1 bg-slate-800 border-slate-700 text-white resize-none placeholder:text-slate-500"
+                                rows={2}
+                            />
+                            <Button
+                                onClick={() => sendMessage()}
+                                disabled={isStreaming || !question.trim()}
+                                className="bg-violet-600 hover:bg-violet-700 self-end disabled:opacity-50"
+                            >
                                 <Send className="w-4 h-4" />
                             </Button>
                         </div>
@@ -284,68 +515,238 @@ export default function LearnPage() {
                 </div>
             )}
 
-            {/* OVERVIEW */}
+            {/* ── OVERVIEW TAB ─────────────────────────────────── */}
             {activeTab === "overview" && (
                 <div className="flex-1 overflow-y-auto p-6">
-                    {summaryLoading && <div className="text-center mt-20"><div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-slate-400">Analyzing...</p></div>}
+                    {summaryLoading && (
+                        <div className="text-center mt-20">
+                            <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-slate-400">Analyzing course materials...</p>
+                        </div>
+                    )}
                     {summary && (
                         <div className="max-w-2xl mx-auto space-y-5">
-                            <Card className="p-5 bg-slate-800 border-slate-700"><div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4 text-violet-400" /><h4 className="font-semibold text-white">Summary</h4></div><p className="text-slate-300 text-sm leading-relaxed">{summary.overview}</p></Card>
-                            <Card className="p-5 bg-slate-800 border-slate-700"><div className="flex items-center gap-2 mb-3"><BookOpen className="w-4 h-4 text-blue-400" /><h4 className="font-semibold text-white">Key Topics</h4></div><div className="flex flex-wrap gap-2">{summary.key_topics.map((t, i) => <Badge key={i} className="bg-blue-900 text-blue-200 border-blue-700 px-3 py-1">{t}</Badge>)}</div></Card>
-                            <Card className="p-5 bg-slate-800 border-slate-700"><div className="flex items-center gap-2 mb-3"><Bot className="w-4 h-4 text-green-400" /><h4 className="font-semibold text-white">Questions to Explore</h4></div><div className="space-y-2">{summary.suggested_questions.map((q, i) => (<button key={i} onClick={() => askQuestion(q)} className="w-full text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-slate-200 flex items-center justify-between group"><span>{q}</span><Send className="w-3 h-3 opacity-0 group-hover:opacity-100 text-violet-400 ml-2" /></button>))}</div></Card>
+                            <Card className="p-5 bg-slate-800 border-slate-700">
+                                <div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4 text-violet-400" /><h4 className="font-semibold text-white">Course Summary</h4></div>
+                                <p className="text-slate-300 text-sm leading-relaxed">{summary.overview}</p>
+                            </Card>
+                            <Card className="p-5 bg-slate-800 border-slate-700">
+                                <div className="flex items-center gap-2 mb-3"><BookOpen className="w-4 h-4 text-blue-400" /><h4 className="font-semibold text-white">Key Topics</h4></div>
+                                <div className="flex flex-wrap gap-2">
+                                    {summary.key_topics.map((t, i) => (
+                                        <Badge key={i} className="bg-blue-900 text-blue-200 border-blue-700 px-3 py-1">{t}</Badge>
+                                    ))}
+                                </div>
+                            </Card>
+                            <Card className="p-5 bg-slate-800 border-slate-700">
+                                <div className="flex items-center gap-2 mb-3"><Bot className="w-4 h-4 text-green-400" /><h4 className="font-semibold text-white">Questions to Explore</h4></div>
+                                <div className="space-y-2">
+                                    {summary.suggested_questions.map((q, i) => (
+                                        <button key={i} onClick={() => askQuestion(q)}
+                                            className="w-full text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-slate-200 flex items-center justify-between group transition-colors">
+                                            <span>{q}</span>
+                                            <Send className="w-3 h-3 opacity-0 group-hover:opacity-100 text-violet-400 ml-2" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </Card>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* FLASHCARDS */}
+            {/* ── FLASHCARDS TAB ───────────────────────────────── */}
             {activeTab === "flashcards" && (
                 <div className="flex-1 overflow-y-auto p-6">
-                    {!flashcards && !flashcardsLoading && (<div className="text-center mt-20"><div className="text-5xl mb-4">🃏</div><p className="text-lg font-medium mb-6 text-slate-300">Study with AI-generated flashcards</p><Button onClick={handleFlashcards} className="bg-violet-600 hover:bg-violet-700"><Sparkles className="w-4 h-4 mr-2" />Generate Flashcards</Button></div>)}
-                    {flashcardsLoading && <div className="text-center mt-20"><div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-slate-400">Creating flashcards...</p></div>}
-                    {flashcards && (<div className="max-w-3xl mx-auto"><div className="flex justify-between mb-6"><h3 className="font-bold text-lg">Flashcards</h3><Button onClick={handleFlashcards} variant="outline" size="sm" className="border-slate-600"><RotateCcw className="w-3 h-3 mr-2" />New Set</Button></div><div className="grid grid-cols-2 gap-4">{flashcards.map((card, i) => <FlipCard key={i} card={card} index={i} />)}</div><p className="text-center text-slate-500 text-sm mt-6">Click any card to reveal the answer</p></div>)}
-                </div>
-            )}
-
-            {/* QUIZ */}
-            {activeTab === "quiz" && (
-                <div className="flex-1 overflow-y-auto p-6">
-                    {!quiz && !quizLoading && (<div className="text-center mt-20"><Zap className="w-12 h-12 mx-auto mb-3 text-yellow-400 opacity-70" /><p className="text-lg font-medium mb-6">Test Your Knowledge</p><Button onClick={handleGenerateQuiz} className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"><Zap className="w-4 h-4 mr-2" />Generate Quiz</Button></div>)}
-                    {quizLoading && <div className="text-center mt-20"><div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-slate-400">Generating questions...</p></div>}
-                    {quiz && (
-                        <div className="max-w-2xl mx-auto space-y-6">
-                            <div className="flex justify-between"><h3 className="font-bold text-lg">Quiz</h3><Button onClick={handleGenerateQuiz} variant="outline" size="sm" className="border-slate-600">New Quiz</Button></div>
-                            {quiz.map((q, i) => (
-                                <Card key={i} className="p-5 bg-slate-800 border-slate-700">
-                                    <p className="font-medium mb-3">{i + 1}. {q.question}</p>
-                                    <div className="space-y-2">{q.options.map((opt, j) => { const letter = opt.charAt(0); const isSelected = selectedAnswers[i] === opt; const isCorrect = letter === q.answer; let style = "bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-200"; if (quizSubmitted) { if (isCorrect) style = "bg-green-900 border-green-500 text-green-100"; else if (isSelected) style = "bg-red-900 border-red-500 text-red-100"; else style = "bg-slate-700 border-slate-600 text-slate-400"; } else if (isSelected) style = "bg-violet-700 border-violet-500 text-white"; return (<button key={j} onClick={() => !quizSubmitted && setSelectedAnswers(prev => ({ ...prev, [i]: opt }))} className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-all ${style}`}>{opt}</button>); })}</div>
-                                    {quizSubmitted && (<div className="mt-3 flex items-start gap-2 text-sm bg-slate-700 rounded-lg p-3">{selectedAnswers[i]?.charAt(0) === q.answer ? <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" /> : <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />}<span className="text-slate-300">{q.explanation}</span></div>)}
-                                </Card>
-                            ))}
-                            {!quizSubmitted ? (<Button onClick={() => setQuizSubmitted(true)} disabled={Object.keys(selectedAnswers).length < quiz.length} className="w-full bg-violet-600 hover:bg-violet-700">Submit ({Object.keys(selectedAnswers).length}/{quiz.length})</Button>) : (<Card className="p-6 bg-slate-800 border-slate-700 text-center"><p className="text-3xl font-bold mb-1">{quizScore}/{quiz.length}</p><p className="text-slate-400">{quizScore === quiz.length ? "🎉 Perfect!" : quizScore >= quiz.length * 0.7 ? "👍 Great!" : "📚 Keep studying!"}</p><Button onClick={handleGenerateQuiz} className="mt-4 bg-violet-600 hover:bg-violet-700">Try Again</Button></Card>)}
+                    {!flashcards && !flashcardsLoading && (
+                        <div className="text-center mt-20">
+                            <div className="text-5xl mb-4">🃏</div>
+                            <p className="text-lg font-medium mb-2 text-white">Smart Flashcards</p>
+                            <p className="text-slate-400 text-sm mb-6">AI-generated from your professor's course materials</p>
+                            <Button onClick={handleFlashcards} className="bg-violet-600 hover:bg-violet-700 text-white">
+                                <Sparkles className="w-4 h-4 mr-2" /> Generate Flashcards
+                            </Button>
+                        </div>
+                    )}
+                    {flashcardsLoading && (
+                        <div className="text-center mt-20">
+                            <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-slate-400">Creating flashcards from course materials...</p>
+                        </div>
+                    )}
+                    {flashcards && (
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex justify-between mb-6">
+                                <div>
+                                    <h3 className="font-bold text-lg text-white">Flashcards</h3>
+                                    <p className="text-slate-500 text-sm">{flashcards.length} cards · Click to flip</p>
+                                </div>
+                                <Button onClick={handleFlashcards} variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+                                    <RotateCcw className="w-3 h-3 mr-2" /> New Set
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {flashcards.map((card, i) => <FlipCard key={i} card={card} index={i} />)}
+                            </div>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* ASSIGNMENT */}
+            {/* ── QUIZ TAB ─────────────────────────────────────── */}
+            {activeTab === "quiz" && (
+                <div className="flex-1 overflow-y-auto p-6">
+                    {!quiz && !quizLoading && (
+                        <div className="text-center mt-20">
+                            <Zap className="w-12 h-12 mx-auto mb-3 text-yellow-400 opacity-70" />
+                            <p className="text-lg font-medium mb-2 text-white">Test Your Knowledge</p>
+                            <p className="text-slate-400 text-sm mb-6">AI-generated MCQs grounded in your professor's materials</p>
+                            <Button onClick={handleGenerateQuiz} className="bg-yellow-500 hover:bg-yellow-400 text-black font-semibold">
+                                <Zap className="w-4 h-4 mr-2" /> Generate Quiz
+                            </Button>
+                        </div>
+                    )}
+                    {quizLoading && (
+                        <div className="text-center mt-20">
+                            <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-slate-400">Generating questions from course materials...</p>
+                        </div>
+                    )}
+                    {quiz && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-lg text-white">Quiz</h3>
+                                    <p className="text-slate-500 text-sm">{quiz.length} questions · Based on course materials</p>
+                                </div>
+                                <Button onClick={handleGenerateQuiz} variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+                                    New Quiz
+                                </Button>
+                            </div>
+                            {quiz.map((q, i) => (
+                                <Card key={i} className="p-5 bg-slate-800 border-slate-700">
+                                    <p className="font-medium mb-3 text-white">{i + 1}. {q.question}</p>
+                                    <div className="space-y-2">
+                                        {q.options.map((opt, j) => {
+                                            const letter = opt.charAt(0);
+                                            const isSelected = selectedAnswers[i] === opt;
+                                            const isCorrect = letter === q.answer;
+                                            let style = "bg-slate-700 hover:bg-slate-600 border-slate-600 text-white";
+                                            if (quizSubmitted) {
+                                                if (isCorrect) style = "bg-green-900 border-green-500 text-green-100";
+                                                else if (isSelected) style = "bg-red-900 border-red-500 text-red-100";
+                                                else style = "bg-slate-700 border-slate-600 text-slate-400";
+                                            } else if (isSelected) style = "bg-violet-700 border-violet-500 text-white";
+                                            return (
+                                                <button key={j}
+                                                    onClick={() => !quizSubmitted && setSelectedAnswers(prev => ({ ...prev, [i]: opt }))}
+                                                    className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-all ${style}`}>
+                                                    {opt}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {quizSubmitted && (
+                                        <div className="mt-3 flex items-start gap-2 text-sm bg-slate-700 rounded-lg p-3">
+                                            {selectedAnswers[i]?.charAt(0) === q.answer
+                                                ? <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                                                : <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                                            }
+                                            <span className="text-slate-300">{q.explanation}</span>
+                                        </div>
+                                    )}
+                                </Card>
+                            ))}
+                            {!quizSubmitted ? (
+                                <Button
+                                    onClick={() => { setQuizSubmitted(true); toast.success(`Quiz submitted! Check your results below.`); }}
+                                    disabled={Object.keys(selectedAnswers).length < quiz.length}
+                                    className="w-full bg-violet-600 hover:bg-violet-700 text-white">
+                                    Submit ({Object.keys(selectedAnswers).length}/{quiz.length})
+                                </Button>
+                            ) : (
+                                <Card className="p-6 bg-slate-800 border-slate-700 text-center">
+                                    <p className="text-4xl font-bold mb-1 text-white">{quizScore}/{quiz.length}</p>
+                                    <p className="text-slate-400 text-lg mb-4">
+                                        {quizScore === quiz.length ? "🎉 Perfect score!" : quizScore >= quiz.length * 0.7 ? "👍 Great work!" : "📚 Keep studying!"}
+                                    </p>
+                                    <Button onClick={handleGenerateQuiz} className="bg-violet-600 hover:bg-violet-700 text-white">
+                                        Try a New Quiz
+                                    </Button>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── ASSIGNMENT HELPER TAB ────────────────────────── */}
             {activeTab === "assignment" && (
                 <div className="flex-1 overflow-y-auto p-6">
                     <div className="max-w-2xl mx-auto space-y-5">
-                        <div className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-orange-400" /><h3 className="font-bold text-lg">Assignment Helper</h3></div>
+                        <div className="flex items-center gap-2">
+                            <ClipboardList className="w-5 h-5 text-orange-400" />
+                            <h3 className="font-bold text-lg text-white">Assignment Helper</h3>
+                        </div>
                         <Card className="p-5 bg-slate-800 border-slate-700">
-                            <p className="text-sm text-slate-400 mb-3">Paste your assignment question for guidance grounded in course materials.</p>
-                            <Textarea value={assignmentText} onChange={e => setAssignmentText(e.target.value)} placeholder="Paste your assignment question here..." className="bg-slate-700 border-slate-600 text-white resize-none mb-3" rows={4} />
-                            <Button onClick={handleAssignmentHelp} disabled={assignmentLoading || !assignmentText.trim()} className="w-full bg-orange-500 hover:bg-orange-600">
-                                {assignmentLoading ? "Analyzing..." : "Get Help"}
+                            <p className="text-sm text-slate-400 mb-1">Get guidance grounded in your professor's course materials.</p>
+                            <p className="text-xs text-orange-400 mb-3">⚠️ Provides hints and approach — never direct answers, per professor's academic integrity rules.</p>
+                            <Textarea
+                                value={assignmentText}
+                                onChange={e => setAssignmentText(e.target.value)}
+                                placeholder="Paste your assignment question here..."
+                                className="bg-slate-700 border-slate-600 text-white resize-none mb-3"
+                                rows={4}
+                            />
+                            <Button
+                                onClick={handleAssignmentHelp}
+                                disabled={assignmentLoading || !assignmentText.trim()}
+                                className="w-full bg-orange-500 hover:bg-orange-400 text-white font-medium">
+                                {assignmentLoading ? "Analyzing..." : "Get Guidance"}
                             </Button>
                         </Card>
+
                         {assignmentHelp && (
                             <div className="space-y-4">
-                                <Card className="p-5 bg-slate-800 border-slate-700"><p className="text-xs text-orange-400 font-medium uppercase mb-2">What it's asking</p><p className="text-slate-200 text-sm leading-relaxed">{assignmentHelp.understanding}</p></Card>
-                                <Card className="p-5 bg-slate-800 border-slate-700"><p className="text-xs text-blue-400 font-medium uppercase mb-3">Key concepts</p><div className="flex flex-wrap gap-2">{assignmentHelp.key_concepts.map((c, i) => <Badge key={i} className="bg-blue-900 text-blue-200 border-blue-700">{c}</Badge>)}</div></Card>
-                                <Card className="p-5 bg-slate-800 border-slate-700"><p className="text-xs text-green-400 font-medium uppercase mb-3">Suggested approach</p><div className="space-y-2">{assignmentHelp.approach.map((step, i) => (<div key={i} className="flex items-start gap-3"><span className="w-6 h-6 rounded-full bg-green-900 text-green-300 text-xs flex items-center justify-center flex-shrink-0">{i + 1}</span><p className="text-slate-300 text-sm">{step.replace(/^Step \d+:\s*/, "")}</p></div>))}</div></Card>
-                                <Card className="p-5 bg-red-950 border-red-800"><p className="text-xs text-red-400 font-medium uppercase mb-2">⚠️ Avoid this</p><p className="text-slate-300 text-sm">{assignmentHelp.warning}</p></Card>
+                                <Card className="p-5 bg-slate-800 border-slate-700">
+                                    <p className="text-xs text-orange-400 font-medium uppercase mb-2">What it's asking</p>
+                                    <p className="text-slate-200 text-sm leading-relaxed">{assignmentHelp.understanding}</p>
+                                </Card>
+                                <Card className="p-5 bg-slate-800 border-slate-700">
+                                    <p className="text-xs text-blue-400 font-medium uppercase mb-3">Key concepts to understand</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {assignmentHelp.key_concepts.map((c, i) => (
+                                            <Badge key={i} className="bg-blue-900 text-blue-200 border-blue-700">{c}</Badge>
+                                        ))}
+                                    </div>
+                                </Card>
+                                <Card className="p-5 bg-slate-800 border-slate-700">
+                                    <p className="text-xs text-green-400 font-medium uppercase mb-3">Suggested approach</p>
+                                    <div className="space-y-2">
+                                        {assignmentHelp.approach.map((step, i) => (
+                                            <div key={i} className="flex items-start gap-3">
+                                                <span className="w-6 h-6 rounded-full bg-green-900 text-green-300 text-xs flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                                <p className="text-slate-300 text-sm">{step.replace(/^Step \d+:\s*/, "")}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                                {assignmentHelp.hints?.length > 0 && (
+                                    <Card className="p-5 bg-slate-800 border-slate-700">
+                                        <p className="text-xs text-yellow-400 font-medium uppercase mb-3">Hints</p>
+                                        <ul className="space-y-1">
+                                            {assignmentHelp.hints.map((h, i) => (
+                                                <li key={i} className="text-slate-300 text-sm flex items-start gap-2">
+                                                    <span className="text-yellow-400 mt-1">→</span>{h}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </Card>
+                                )}
+                                <Card className="p-5 bg-red-950 border-red-800">
+                                    <p className="text-xs text-red-400 font-medium uppercase mb-2">⚠️ Common mistake to avoid</p>
+                                    <p className="text-slate-300 text-sm">{assignmentHelp.warning}</p>
+                                </Card>
                             </div>
                         )}
                     </div>

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, BookOpen, GraduationCap, LogOut, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import toast from "react-hot-toast";
 
 export default function BrowsePage() {
     const router = useRouter();
@@ -27,10 +28,14 @@ export default function BrowsePage() {
 
     const handleEnroll = async (courseId: string) => {
         setEnrolling(courseId);
+        const toastId = toast.loading("Enrolling in course...");
         try {
             await enrollInCourse(courseId);
             setEnrolled([...enrolled, courseId]);
-        } catch { alert("Enrollment failed"); }
+            toast.success("Enrolled successfully! Start learning now.", { id: toastId });
+        } catch {
+            toast.error("Enrollment failed. Please try again.", { id: toastId });
+        }
         setEnrolling(null);
     };
 

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Brain, Plus, Trash2, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 const STYLES = [
     { id: "socratic", label: "Socratic", desc: "Guide with questions" },
@@ -63,11 +64,15 @@ export default function TrainPersonaPage() {
 
     const handleSave = async () => {
         setSaving(true);
+        const toastId = toast.loading("Training your Mini Professor...");
         try {
             await savePersona(courseId, persona);
             setSaved(true);
+            toast.success("Mini Professor trained and ready!", { id: toastId });
             setTimeout(() => setSaved(false), 3000);
-        } catch { alert("Failed to save"); }
+        } catch {
+            toast.error("Failed to save. Please try again.", { id: toastId });
+        }
         setSaving(false);
     };
 
