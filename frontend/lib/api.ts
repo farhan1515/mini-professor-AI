@@ -8,7 +8,7 @@ export const api = axios.create({ baseURL: API_URL });
 
 // Auto-attach token to every request
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : null;
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
@@ -125,7 +125,7 @@ export const streamChat = (
     onSources: (s: { filename: string; page: number }[]) => void,
     onDone: () => void
 ) => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : null;
     fetch(`${API_URL}/chat/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -184,8 +184,10 @@ export const getVoiceStatus = async (courseId: string) => {
     return res.data.data;
 };
 
+
+
 export const speakText = async (courseId: string, text: string): Promise<Blob> => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : null;
     const res = await fetch(`${API_URL}/voice/speak`, {
         method: "POST",
         headers: {

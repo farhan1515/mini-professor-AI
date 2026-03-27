@@ -19,18 +19,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
     user: null,
     token: null,
     setAuth: (user, token) => {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+        sessionStorage.setItem("token", token);
+        sessionStorage.setItem("user", JSON.stringify(user));
         set({ user, token });
     },
     logout: () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
         set({ user: null, token: null });
     },
     loadFromStorage: () => {
-        const token = localStorage.getItem("token");
-        const userStr = localStorage.getItem("user");
+        const token = sessionStorage.getItem("token");
+        const userStr = sessionStorage.getItem("user");
         if (token && userStr) {
             set({ token, user: JSON.parse(userStr) });
         }
